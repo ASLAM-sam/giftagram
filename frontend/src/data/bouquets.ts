@@ -55,9 +55,9 @@ export const BOUQUET_PRODUCTS: Product[] = [
     shortDescription: "Ten classic roses thoughtfully arranged for a simple, timeless gesture.",
     description: "Ten classic roses thoughtfully arranged for a simple, timeless gesture. Hand-selected fresh long-stem red roses cocooned in luxury matte blush paper with delicate champagne accents.",
     images: [
+      "/images/bouquets/rose-bouquet-10.jpg",
       "/images/bouquets/rose-bouquet.jpg",
       "/images/bouquets/photo-bouquet.jpg",
-      "/images/bouquets/chocolate-bouquet.jpg",
     ],
     featured: false,
     tags: ["10 Roses", "Red Roses", "Classic"],

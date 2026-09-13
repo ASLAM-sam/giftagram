@@ -55,8 +55,8 @@ export const paymentService = {
   async processDepositPayment(
     orderId: string,
     depositAmount: number,
-    customerName: string,
-    customerPhone: string
+    _customerName: string,
+    _customerPhone: string
   ): Promise<PaymentInitiationResult> {
     console.info(`[PaymentService] Initiating deposit payment for order ${orderId}: ₹${depositAmount}`);
     

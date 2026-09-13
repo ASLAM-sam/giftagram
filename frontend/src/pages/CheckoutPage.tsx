@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useCart } from '../../src/context/CartContext';
-import { useUI } from '../../src/context/UIContext';
-import { orderService } from '../../src/services/orderService';
-import { paymentService } from '../../src/services/paymentService';
-import { CONTACT_CONFIG, BRAND_CONFIG } from '../../src/config/brand';
+import { useCart } from '../context/CartContext';
+import { useUI } from '../context/UIContext';
+import { orderService } from '../services/orderService';
+import { paymentService } from '../services/paymentService';
+import { CONTACT_CONFIG, BRAND_CONFIG } from '../config/brand';
 import { Button } from '../components/common/Button';
 import {
   ShieldCheck,
@@ -12,7 +12,6 @@ import {
   Clock,
   MapPin,
   Lock,
-  Sparkles,
   CreditCard,
   ShoppingBag,
 } from 'lucide-react';

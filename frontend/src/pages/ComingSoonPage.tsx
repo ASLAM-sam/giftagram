@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { COMING_SOON_CATEGORIES } from '../data/comingSoon';
 import { ComingSoonCategoryCard } from '../components/product/ComingSoonCategoryCard';
 import { Button } from '../components/common/Button';
-import { Sparkles, ArrowRight, Lock } from 'lucide-react';
+import { ArrowRight, Lock } from 'lucide-react';
 
 export const ComingSoonPage: React.FC = () => {
   return (

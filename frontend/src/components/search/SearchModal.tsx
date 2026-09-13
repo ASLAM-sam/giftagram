@@ -1,16 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUI } from '../../context/UIContext';
 import { searchProducts } from '../../data/products';
-import { Product } from '../../types';
 import { Search, X, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const SearchModal: React.FC = () => {
   const { isSearchOpen, closeSearch } = useUI();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const results = query.trim() ? searchProducts(query) : [];
+
+  const handleClose = useCallback(() => {
+    setQuery('');
+    closeSearch();
+  }, [closeSearch]);
 
   useEffect(() => {
     if (isSearchOpen) {
@@ -18,33 +23,22 @@ export const SearchModal: React.FC = () => {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
-      setQuery('');
-      setResults([]);
     }
     return () => {
       document.body.style.overflow = '';
     };
   }, [isSearchOpen]);
 
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-    const found = searchProducts(query);
-    setResults(found);
-  }, [query]);
-
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isSearchOpen) {
-        closeSearch();
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSearchOpen, closeSearch]);
+  }, [isSearchOpen, handleClose]);
 
   return (
     <AnimatePresence>

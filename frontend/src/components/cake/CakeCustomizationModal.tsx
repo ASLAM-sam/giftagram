@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Product, CakeCustomization } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { useUI } from '../../context/UIContext';
-import { X, Calendar, Clock, AlertTriangle, ShieldCheck, Sparkles, Cake } from 'lucide-react';
+import { X, Calendar, Clock, ShieldCheck, Sparkles, Cake } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface CakeCustomizationModalProps {

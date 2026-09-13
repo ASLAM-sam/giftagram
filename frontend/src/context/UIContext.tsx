@@ -20,13 +20,15 @@ interface UIContextType {
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
 
+let toastCounter = 0;
+
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    const id = `${Date.now()}-${Math.random()}`;
+    const id = `toast-${++toastCounter}`;
     setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {

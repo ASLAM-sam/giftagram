@@ -2,7 +2,7 @@ import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { orderService } from '../services/orderService';
 import { Button } from '../components/common/Button';
-import { CONTACT_CONFIG, BRAND_CONFIG } from '../config/brand';
+import { CONTACT_CONFIG } from '../config/brand';
 import { CheckCircle2, Calendar, Clock, MapPin, Sparkles, MessageCircle, ArrowRight } from 'lucide-react';
 
 export const OrderSuccessPage: React.FC = () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BRAND_CONFIG, CONTACT_CONFIG } from '../config/brand';
-import { ShieldCheck, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export const RefundPolicyPage: React.FC = () => {
   return (

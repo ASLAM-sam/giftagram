@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_CONFIG, CONTACT_CONFIG } from '../config/brand';
 import { Button } from '../components/common/Button';
-import { Heart, Sparkles, Clock, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
+import { Heart, Sparkles, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
 
 export const AboutPage: React.FC = () => {
   return (

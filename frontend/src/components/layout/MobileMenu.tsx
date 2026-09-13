@@ -15,7 +15,7 @@ export const MobileMenu: React.FC = () => {
   // Auto-close on route change
   useEffect(() => {
     closeMobileMenu();
-  }, [location.pathname]);
+  }, [location.pathname, closeMobileMenu]);
 
   useEffect(() => {
     if (isMobileMenuOpen) {

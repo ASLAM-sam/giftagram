@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CONTACT_CONFIG, BRAND_CONFIG } from '../config/brand';
+import { CONTACT_CONFIG } from '../config/brand';
 import { useUI } from '../context/UIContext';
 import { Button } from '../components/common/Button';
 import { InstagramIcon } from '../components/common/InstagramIcon';

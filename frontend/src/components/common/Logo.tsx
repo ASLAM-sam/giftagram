@@ -7,7 +7,7 @@ interface LogoProps {
   isFooter?: boolean;
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', isFooter = false }) => {
+export const Logo: React.FC<LogoProps> = ({ className = '', isFooter: _isFooter = false }) => {
   const { logo, name } = BRAND_CONFIG;
 
   if (logo.useImageLogo) {

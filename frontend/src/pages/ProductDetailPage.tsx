@@ -4,9 +4,9 @@ import { getProductBySlug, ALL_PRODUCTS } from '../data/products';
 import { ProductGallery } from '../components/product/ProductGallery';
 import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModal';
 import { ProductCard } from '../components/product/ProductCard';
-import { useCart } from '../../src/context/CartContext';
-import { useWishlist } from '../../src/context/WishlistContext';
-import { useUI } from '../../src/context/UIContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useUI } from '../context/UIContext';
 import { Button } from '../components/common/Button';
 import {
   Heart,

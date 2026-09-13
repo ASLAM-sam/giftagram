@@ -123,7 +123,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onCustomizeCl
                 to={`/cakes/${product.slug}`}
                 className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-700 bg-blush-50 hover:bg-blush-100 px-3 py-1.5 rounded-full transition-colors border border-rose-200/60"
               >
-                <span>Customize</span>
+                <span>View Details</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             ) : (
