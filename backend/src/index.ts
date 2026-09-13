@@ -3,7 +3,6 @@
  * 
  * Connected to:
  * - Cloudflare D1 (giftagram-db)
- * - Cloudflare R2 (giftagram-images)
  * - Razorpay (Server-Side Payment Authorization & Signature Verification)
  */
 
@@ -14,6 +13,27 @@ import { handleGetProducts, handleGetProductBySlug, handleGetCategories } from '
 import { handleCreateOrder } from './routes/orders';
 import { handleOrderLookup } from './routes/orderLookup';
 import { handleCreatePaymentOrder, handleVerifyPayment, handlePaymentWebhook } from './routes/payments';
+import { handleAdminLogin, handleAdminLogout, handleAdminMe } from './routes/adminAuth';
+import {
+  handleAdminGetProducts,
+  handleAdminGetProductById,
+  handleAdminCreateProduct,
+  handleAdminUpdateProduct,
+  handleAdminToggleProductStatus,
+} from './routes/adminProducts';
+import {
+  handleAdminGetProductImages,
+  handleAdminUploadProductImage,
+  handleAdminSetPrimaryImage,
+  handleAdminReorderImages,
+  handleAdminReplaceProductImage,
+  handleAdminDeleteProductImage,
+} from './routes/adminImages';
+import {
+  handleAdminGetOrders,
+  handleAdminGetOrderById,
+  handleAdminUpdateOrderStatus,
+} from './routes/adminOrders';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -103,6 +123,78 @@ export default {
       // Razorpay Webhook
       else if (path === '/api/payments/webhook' && method === 'POST') {
         response = await handlePaymentWebhook(request, env);
+      }
+      // Admin Authentication
+      else if (path === '/api/admin/login' && method === 'POST') {
+        response = await handleAdminLogin(request, env);
+      }
+      else if (path === '/api/admin/logout' && method === 'POST') {
+        response = await handleAdminLogout(request, env);
+      }
+      else if (path === '/api/admin/me' && method === 'GET') {
+        response = await handleAdminMe(request, env);
+      }
+      // Admin Product Management
+      else if (path === '/api/admin/products' && method === 'GET') {
+        response = await handleAdminGetProducts(request, env);
+      }
+      else if (path === '/api/admin/products' && method === 'POST') {
+        response = await handleAdminCreateProduct(request, env);
+      }
+      // Admin Product Image Management
+      else if (path.startsWith('/api/admin/products/') && path.endsWith('/images/reorder') && method === 'PUT') {
+        const productId = decodeURIComponent(path.replace('/api/admin/products/', '').replace('/images/reorder', ''));
+        response = await handleAdminReorderImages(request, env, productId);
+      }
+      else if (path.startsWith('/api/admin/products/') && path.includes('/images/') && path.endsWith('/primary') && method === 'PUT') {
+        const parts = path.replace('/api/admin/products/', '').replace('/primary', '').split('/images/');
+        const productId = decodeURIComponent(parts[0]);
+        const imageId = decodeURIComponent(parts[1]);
+        response = await handleAdminSetPrimaryImage(request, env, productId, imageId);
+      }
+      else if (path.startsWith('/api/admin/products/') && path.includes('/images/') && path.endsWith('/replace') && method === 'POST') {
+        const parts = path.replace('/api/admin/products/', '').replace('/replace', '').split('/images/');
+        const productId = decodeURIComponent(parts[0]);
+        const imageId = decodeURIComponent(parts[1]);
+        response = await handleAdminReplaceProductImage(request, env, productId, imageId);
+      }
+      else if (path.startsWith('/api/admin/products/') && path.includes('/images/') && method === 'DELETE') {
+        const parts = path.replace('/api/admin/products/', '').split('/images/');
+        const productId = decodeURIComponent(parts[0]);
+        const imageId = decodeURIComponent(parts[1]);
+        response = await handleAdminDeleteProductImage(request, env, productId, imageId);
+      }
+      else if (path.startsWith('/api/admin/products/') && path.endsWith('/images') && method === 'GET') {
+        const productId = decodeURIComponent(path.replace('/api/admin/products/', '').replace('/images', ''));
+        response = await handleAdminGetProductImages(request, env, productId);
+      }
+      else if (path.startsWith('/api/admin/products/') && path.endsWith('/images') && method === 'POST') {
+        const productId = decodeURIComponent(path.replace('/api/admin/products/', '').replace('/images', ''));
+        response = await handleAdminUploadProductImage(request, env, productId);
+      }
+      else if (path.startsWith('/api/admin/products/') && path.endsWith('/status') && method === 'PATCH') {
+        const id = decodeURIComponent(path.replace('/api/admin/products/', '').replace('/status', ''));
+        response = await handleAdminToggleProductStatus(request, env, id);
+      }
+      else if (path.startsWith('/api/admin/products/') && method === 'PUT') {
+        const id = decodeURIComponent(path.replace('/api/admin/products/', ''));
+        response = await handleAdminUpdateProduct(request, env, id);
+      }
+      else if (path.startsWith('/api/admin/products/') && method === 'GET') {
+        const id = decodeURIComponent(path.replace('/api/admin/products/', ''));
+        response = await handleAdminGetProductById(request, env, id);
+      }
+      // Admin Orders
+      else if (path === '/api/admin/orders' && method === 'GET') {
+        response = await handleAdminGetOrders(request, env);
+      }
+      else if (path.startsWith('/api/admin/orders/') && path.endsWith('/status') && method === 'PATCH') {
+        const id = decodeURIComponent(path.replace('/api/admin/orders/', '').replace('/status', ''));
+        response = await handleAdminUpdateOrderStatus(request, env, id);
+      }
+      else if (path.startsWith('/api/admin/orders/') && method === 'GET') {
+        const id = decodeURIComponent(path.replace('/api/admin/orders/', ''));
+        response = await handleAdminGetOrderById(request, env, id);
       }
       // 404 Route Not Found
       else {

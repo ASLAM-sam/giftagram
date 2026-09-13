@@ -32,3 +32,19 @@ export function generateOrderNumber(): string {
 
   return `GFT-${datePart}-${randomSuffix}`;
 }
+
+/**
+ * Generates a clean URL-friendly slug from a string
+ */
+export function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+}
+

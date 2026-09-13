@@ -1,6 +1,7 @@
 import { validateCreateOrderInput } from '../src/validators/orderValidator';
 import { createHmacSha256, timingSafeEqual } from '../src/utils/crypto';
 import { generateOrderNumber, generateId } from '../src/utils/ids';
+import { runAuthUnitTests } from './auth.unit.test';
 
 async function runUnitTests() {
   console.log('--- RUNNING GIFTAGRAM BACKEND UNIT TESTS ---');
@@ -103,7 +104,11 @@ async function runUnitTests() {
   });
   assert(vGoodOrder.valid && vGoodOrder.data !== undefined, 'Validator accepts properly configured order');
 
-  console.log(`\nResults: ${passed} passed, ${failed} failed`);
+  const authResults = await runAuthUnitTests();
+  passed += authResults.passed;
+  failed += authResults.failed;
+
+  console.log(`\nOverall Unit Results: ${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
 }
 

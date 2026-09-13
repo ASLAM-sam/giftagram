@@ -10,10 +10,10 @@ React / Vite Frontend
        ▼ (HTTPS / JSON)
 Cloudflare Worker API (`giftagram-backend`)
        │
-  ┌────┼──────────────┬────────────────┐
-  ▼    ▼              ▼                ▼
-Cloudflare D1    Cloudflare R2     Razorpay API    Cloudflare Secrets
-(Database)       (Image Store)    (50% Deposit)   (Encrypted Keys)
+  ┌────┼──────────────┐
+  ▼    ▼              ▼
+Cloudflare D1    Razorpay API    Cloudflare Secrets
+(Database)       (50% Deposit)   (Encrypted Keys)
 ```
 
 ## API Endpoints Reference

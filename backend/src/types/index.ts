@@ -37,6 +37,10 @@ export interface ProductImageRow {
   alt_text: string | null;
   sort_order: number;
   created_at: string;
+  secure_url?: string | null;
+  public_id?: string | null;
+  folder?: string | null;
+  is_primary?: number | null;
 }
 
 export interface CustomerRow {
@@ -136,3 +140,32 @@ export interface CreateOrderInput {
   specialInstructions?: string;
   items: CreateOrderInputItem[];
 }
+
+export interface CreateProductInput {
+  name: string;
+  slug?: string;
+  category: ProductCategory | string;
+  description: string;
+  price: number;
+  weight?: string | null;
+  active?: number | boolean;
+  featured?: number | boolean;
+  flavorCategory?: string | null;
+  stemCount?: number | null;
+}
+
+export interface UpdateProductInput {
+  name?: string;
+  slug?: string;
+  category?: ProductCategory | string;
+  description?: string;
+  price?: number;
+  weight?: string | null;
+  active?: number | boolean;
+  featured?: number | boolean;
+  flavorCategory?: string | null;
+  stemCount?: number | null;
+}
+
+export * from './admin';
+

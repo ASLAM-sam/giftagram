@@ -65,5 +65,4 @@ npm run build
 - **Frontend**: Cloudflare Pages (`frontend/dist`)
 - **Backend**: Cloudflare Workers (`backend/`)
 - **Database**: Cloudflare D1
-- **Media**: Cloudflare R2
 - **Payments**: Razorpay

@@ -15,13 +15,6 @@
     }
   ],
 
-  // Cloudflare R2 Bucket Binding (Uncomment once R2 is enabled on Cloudflare Dashboard)
-  // "r2_buckets": [
-  //   {
-  //     "binding": "IMAGES",
-  //     "bucket_name": "giftagram-images"
-  //   }
-  // ],
 
   // Public Configuration Variables (Secrets like RAZORPAY_KEY_SECRET are set via `wrangler secret put`)
   "vars": {

@@ -264,4 +264,263 @@ export const orderService = {
       items: itemsRes.results || [],
     };
   },
+
+  /**
+   * Retrieves orders for the admin management view with optional search and status filtering.
+   */
+  async getAdminOrders(
+    db: D1Database,
+    filters?: { status?: string; search?: string; limit?: number; offset?: number }
+  ): Promise<any[]> {
+    let query = `
+      SELECT o.*, 
+        (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) as items_count
+      FROM orders o
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (filters?.status && filters.status !== 'all') {
+      query += ` AND o.status = ?`;
+      params.push(filters.status.trim());
+    }
+
+    if (filters?.search && filters.search.trim()) {
+      const s = `%${filters.search.trim().toLowerCase()}%`;
+      query += ` AND (LOWER(o.order_number) LIKE ? OR LOWER(o.customer_name) LIKE ? OR o.customer_phone LIKE ?)`;
+      params.push(s, s, s);
+    }
+
+    query += ` ORDER BY o.created_at DESC`;
+
+    const limit = filters?.limit ? Math.min(filters.limit, 100) : 50;
+    const offset = filters?.offset ? Math.max(filters.offset, 0) : 0;
+    query += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const stmt = db.prepare(query).bind(...params);
+    const result = await stmt.all<any>();
+    const rows = result.results || [];
+
+    return rows.map((r) => ({
+      id: r.id,
+      orderNumber: r.order_number,
+      customerName: r.customer_name,
+      customerPhone: r.customer_phone,
+      customerEmail: r.customer_email || undefined,
+      status: r.status,
+      subtotal: r.subtotal,
+      depositAmount: r.deposit_amount,
+      remainingAmount: r.remaining_amount,
+      currency: r.currency || 'INR',
+      pickupDate: r.pickup_date || undefined,
+      pickupTime: r.pickup_time || undefined,
+      notes: r.notes || undefined,
+      itemsCount: r.items_count || 0,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  },
+
+  /**
+   * Retrieves full order dossier for admin review: items, cake customizations, payment records, and audit events.
+   */
+  async getAdminOrderById(db: D1Database, idOrOrderNumber: string): Promise<any | null> {
+    const cleanId = idOrOrderNumber.trim();
+    const order = await db
+      .prepare('SELECT * FROM orders WHERE id = ? OR order_number = ? LIMIT 1')
+      .bind(cleanId, cleanId)
+      .first<OrderRow>();
+
+    if (!order) return null;
+
+    // 1. Fetch Order Items
+    const itemsResult = await db
+      .prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY created_at ASC')
+      .bind(order.id)
+      .all<OrderItemRow>();
+    const rawItems = itemsResult.results || [];
+
+    // 2. Fetch Cake Customizations for items
+    const itemIds = rawItems.map((i) => i.id);
+    let customizationsMap = new Map<string, any>();
+    if (itemIds.length > 0) {
+      const placeholders = itemIds.map(() => '?').join(',');
+      const customRes = await db
+        .prepare(`SELECT * FROM cake_customizations WHERE order_item_id IN (${placeholders})`)
+        .bind(...itemIds)
+        .all<any>();
+      (customRes.results || []).forEach((c) => customizationsMap.set(c.order_item_id, c));
+    }
+
+    const items = rawItems.map((item) => {
+      const custom = customizationsMap.get(item.id);
+      return {
+        id: item.id,
+        productId: item.product_id,
+        productNameSnapshot: item.product_name_snapshot,
+        unitPriceSnapshot: item.unit_price_snapshot,
+        quantity: item.quantity,
+        lineTotal: item.line_total,
+        cakeCustomization: custom
+          ? {
+              id: custom.id,
+              fullName: custom.full_name,
+              phone: custom.phone,
+              email: custom.email || undefined,
+              pickupDate: custom.pickup_date,
+              pickupTime: custom.pickup_time,
+              designRequirements: custom.design_requirements,
+              colors: custom.colors || undefined,
+              lettering: custom.lettering || undefined,
+              additionalNotes: custom.additional_notes || undefined,
+              depositAcknowledged: custom.deposit_acknowledged === 1,
+            }
+          : null,
+      };
+    });
+
+    // 3. Fetch Payments (safely sanitized without secrets)
+    const paymentsRes = await db
+      .prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY created_at ASC')
+      .bind(order.id)
+      .all<any>();
+    const payments = (paymentsRes.results || []).map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      amountRupees: p.amount / 100,
+      currency: p.currency,
+      status: p.status,
+      provider: p.provider || 'razorpay',
+      providerOrderId: p.provider_order_id,
+      providerPaymentId: p.provider_payment_id || undefined,
+      createdAt: p.created_at,
+    }));
+
+    // 4. Fetch Order Events / Audit Log
+    const eventsRes = await db
+      .prepare('SELECT * FROM order_events WHERE order_id = ? ORDER BY created_at ASC')
+      .bind(order.id)
+      .all<any>();
+    const events = (eventsRes.results || []).map((e) => {
+      let payload = null;
+      try {
+        payload = e.payload_json ? JSON.parse(e.payload_json) : null;
+      } catch {
+        payload = e.payload_json;
+      }
+      return {
+        id: e.id,
+        eventType: e.event_type,
+        payload,
+        createdAt: e.created_at,
+      };
+    });
+
+    return {
+      id: order.id,
+      orderNumber: order.order_number,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      customerEmail: order.customer_email || undefined,
+      status: order.status,
+      subtotal: order.subtotal,
+      depositAmount: order.deposit_amount,
+      remainingAmount: order.remaining_amount,
+      currency: order.currency || 'INR',
+      pickupDate: order.pickup_date || undefined,
+      pickupTime: order.pickup_time || undefined,
+      notes: order.notes || undefined,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      items,
+      payments,
+      events,
+    };
+  },
+
+  /**
+   * Updates an order's status following strict business state machine transitions and audit logging.
+   */
+  async updateOrderStatus(
+    db: D1Database,
+    idOrOrderNumber: string,
+    newStatus: string,
+    reason?: string
+  ): Promise<any> {
+    const cleanStatus = newStatus.trim().toLowerCase();
+    const VALID_STATUSES = new Set([
+      'payment_pending',
+      'deposit_paid',
+      'confirmed',
+      'processing',
+      'ready',
+      'completed',
+      'cancelled',
+    ]);
+
+    if (!VALID_STATUSES.has(cleanStatus)) {
+      throw new Error(`Invalid status "${newStatus}". Must be one of: ${Array.from(VALID_STATUSES).join(', ')}`);
+    }
+
+    const cleanId = idOrOrderNumber.trim();
+    const order = await db
+      .prepare('SELECT id, status, order_number FROM orders WHERE id = ? OR order_number = ? LIMIT 1')
+      .bind(cleanId, cleanId)
+      .first<{ id: string; status: string; order_number: string }>();
+
+    if (!order) {
+      throw new Error(`Order "${idOrOrderNumber}" not found.`);
+    }
+
+    const currentStatus = order.status;
+    if (currentStatus === cleanStatus) {
+      // Idempotent: status already matches
+      return this.getAdminOrderById(db, order.id);
+    }
+
+    const VALID_TRANSITIONS: Record<string, string[]> = {
+      payment_pending: ['cancelled'],
+      deposit_paid: ['confirmed', 'cancelled'],
+      confirmed: ['processing', 'cancelled'],
+      processing: ['ready', 'cancelled'],
+      ready: ['completed'],
+      completed: [], // terminal
+      cancelled: [], // terminal
+    };
+
+    const allowed = VALID_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(cleanStatus)) {
+      throw new Error(
+        `Cannot transition order from "${currentStatus}" to "${cleanStatus}". Allowed transitions: ${
+          allowed.length > 0 ? allowed.join(', ') : 'None (Terminal state)'
+        }.`
+      );
+    }
+
+    const now = new Date().toISOString();
+    const eventId = generateId('evt');
+
+    await db.batch([
+      db.prepare('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?').bind(cleanStatus, now, order.id),
+      db
+        .prepare(
+          'INSERT INTO order_events (id, order_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)'
+        )
+        .bind(
+          eventId,
+          order.id,
+          'status_changed',
+          JSON.stringify({
+            from: currentStatus,
+            to: cleanStatus,
+            reason: reason || null,
+            transitionTimestamp: now,
+          }),
+          now
+        ),
+    ]);
+
+    return this.getAdminOrderById(db, order.id);
+  },
 };

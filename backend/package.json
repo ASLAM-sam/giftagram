@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx test/unit.test.ts",
     "test:integration": "tsx test/integration.test.ts",
-    "migrate:local": "wrangler d1 migrations apply DB --local"
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "hono": "^4.0.0"

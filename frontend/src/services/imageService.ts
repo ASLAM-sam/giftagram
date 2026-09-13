@@ -1,28 +1,28 @@
 /**
- * Image Asset Service (Cloudflare R2 Ready)
+ * Image Asset Service
  * 
- * Future Architecture:
- * 1. Product and gallery images stored in Cloudflare R2 bucket.
- * 2. Served via custom domain with Cloudflare Polish / Images optimization.
- * 3. Client uploads for inspiration photos stored via presigned R2 URLs.
+ * Architecture:
+ * 1. Product and gallery images are stored in Cloudinary under the giftagram/ namespace.
+ * 2. Served via Cloudinary's dynamic CDN.
+ * 3. Future: Client uploads for inspiration photos stored via signed Cloudinary APIs.
  */
 
 export const imageService = {
   /**
    * Resolves image URL.
-   * If an R2 CDN base URL is configured in future environment, prefixes it.
    */
   resolveImageUrl(path: string): string {
-    // Currently serves from local /public
+    // Backend API already returns fully qualified Cloudinary secure_urls,
+    // or falls back to local /public paths for legacy items.
     return path;
   },
 
   /**
-   * Future R2 upload for customer-submitted cake reference photos
-   * TODO: Connect to Worker endpoint `POST /api/upload-reference` with R2 binding.
+   * Future upload for customer-submitted cake reference photos
+   * TODO: Connect to Worker endpoint `POST /api/upload-reference` with Cloudinary service.
    */
   async uploadReferencePhoto(file: File): Promise<string> {
-    console.info(`[ImageService] Uploading reference photo ${file.name} to R2 bucket`);
+    console.info(`[ImageService] Uploading reference photo ${file.name} to Cloudinary`);
     return URL.createObjectURL(file);
   },
 };

@@ -44,9 +44,11 @@ export const productService = {
       const json = await response.json();
       if (json.success && Array.isArray(json.data)) {
         return json.data.map((p: any) => {
-          const local = [...CAKE_PRODUCTS, ...BOUQUET_PRODUCTS].find((lp) => lp.slug === p.slug);
-          if (local && local.images && local.images.length > 0) {
-            p.images = local.images;
+          if (!p.images || p.images.length === 0 || (p.images.length === 1 && !p.images[0])) {
+            const local = [...CAKE_PRODUCTS, ...BOUQUET_PRODUCTS].find((lp) => lp.slug === p.slug);
+            if (local && local.images && local.images.length > 0) {
+              p.images = local.images;
+            }
           }
           return p;
         });
@@ -80,9 +82,11 @@ export const productService = {
       if (response.ok) {
         const json = await response.json();
         if (json.success && json.data) {
-          const localMatch = (LOCAL_PRODUCTS[category] || []).find((p) => p.slug === slug);
-          if (localMatch && localMatch.images && localMatch.images.length > 0) {
-            json.data.images = localMatch.images;
+          if (!json.data.images || json.data.images.length === 0 || (json.data.images.length === 1 && !json.data.images[0])) {
+            const localMatch = (LOCAL_PRODUCTS[category] || []).find((p) => p.slug === slug);
+            if (localMatch && localMatch.images && localMatch.images.length > 0) {
+              json.data.images = localMatch.images;
+            }
           }
           return json.data;
         }

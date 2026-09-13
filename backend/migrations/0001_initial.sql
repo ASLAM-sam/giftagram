@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
 CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 
--- 2. PRODUCT IMAGES (Cloudflare R2 storage reference)
+-- 2. PRODUCT IMAGES (Image storage reference)
 CREATE TABLE IF NOT EXISTS product_images (
     id TEXT PRIMARY KEY,
     product_id TEXT NOT NULL,

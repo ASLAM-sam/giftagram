@@ -1,4 +1,5 @@
 import { createHmacSha256 } from '../src/utils/crypto';
+import { runAdminAuthIntegrationTests } from './admin_auth.integration.test';
 
 const API_BASE = 'http://127.0.0.1:8787';
 
@@ -196,7 +197,11 @@ async function runIntegrationTests() {
     'CORS header Access-Control-Allow-Origin is present'
   );
 
-  console.log(`\nResults: ${passed} passed, ${failed} failed`);
+  const authResults = await runAdminAuthIntegrationTests();
+  passed += authResults.passed;
+  failed += authResults.failed;
+
+  console.log(`\nOverall Integration Results: ${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);
 }
 

@@ -34,7 +34,7 @@ INSERT OR IGNORE INTO products (id, slug, name, category, description, price, we
 ('cat-tiered', 'tiered-cakes', 'Tiered Celebration Cakes', 'tiered-cakes', 'Grand multi-tiered cakes for engagements and weddings.', 0, NULL, 0, 0),
 ('cat-pr', 'pr-preeties', 'PR & Preeties', 'pr-preeties', 'Boutique media packages, brand gifts, and influencer hampers.', 0, NULL, 0, 0);
 
--- 4. SEED PRODUCT IMAGES (R2 keys)
+-- 4. SEED PRODUCT IMAGES (Image keys)
 INSERT OR IGNORE INTO product_images (id, product_id, r2_key, alt_text, sort_order) VALUES
 ('img-cake-belgium-1', 'cake-belgium', 'cakes/chocolate-belgium.webp', 'Chocolate Belgium Cake 500g', 1),
 ('img-cake-pineapple-1', 'cake-pineapple', 'cakes/fresh-pineapple.webp', 'Fresh Pineapple Cake 500g', 1),
