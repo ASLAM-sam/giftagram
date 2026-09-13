@@ -6,10 +6,10 @@ import { MAIN_NAV_LINKS } from '../../config/navigation';
 import { BRAND_CONFIG, CONTACT_CONFIG } from '../../config/brand';
 import { Logo } from '../common/Logo';
 import { InstagramIcon } from '../common/InstagramIcon';
-import { X, Phone, MessageCircle } from 'lucide-react';
+import { X, Phone, MessageCircle, User } from 'lucide-react';
 
 export const MobileMenu: React.FC = () => {
-  const { isMobileMenuOpen, closeMobileMenu } = useUI();
+  const { isMobileMenuOpen, closeMobileMenu, openAccount } = useUI();
   const location = useLocation();
 
   // Auto-close on route change
@@ -85,6 +85,25 @@ export const MobileMenu: React.FC = () => {
                   </Link>
                 );
               })}
+
+              {/* Account & Order Tracking in Mobile Menu */}
+              <div className="pt-4">
+                <button
+                  onClick={() => {
+                    closeMobileMenu();
+                    openAccount();
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-luxury bg-blush-50/80 hover:bg-blush-100 text-espresso-900 transition-colors border border-rose-200/70"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white text-rose-600 flex items-center justify-center shadow-soft shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-serif text-sm font-semibold leading-none">My Account & Orders</p>
+                    <p className="text-[0.68rem] text-espresso-600 mt-1">Track order status & studio pickup</p>
+                  </div>
+                </button>
+              </div>
             </div>
 
             {/* Bottom info & socials */}

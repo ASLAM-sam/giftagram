@@ -7,8 +7,11 @@ import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModa
 import { Product } from '../types';
 import { Button } from '../components/common/Button';
 import { Heart, ArrowRight } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const WishlistPage: React.FC = () => {
+  useDocumentTitle('Your Wishlist | Giftagram', 'View your saved artisan cakes and luxury bouquets.');
+
   const { wishlist } = useWishlist();
   const [customizingCake, setCustomizingCake] = useState<Product | null>(null);
 

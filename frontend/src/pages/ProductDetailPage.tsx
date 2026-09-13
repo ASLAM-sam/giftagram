@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getProductBySlug, ALL_PRODUCTS } from '../data/products';
+import { getProductBySlug as getLocalProduct, ALL_PRODUCTS } from '../data/products';
 import { ProductGallery } from '../components/product/ProductGallery';
 import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModal';
 import { ProductCard } from '../components/product/ProductCard';
+import { ProductDetailsSkeleton } from '../components/common/ProductDetailsSkeleton';
+import { productService } from '../services/productService';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useUI } from '../context/UIContext';
 import { Button } from '../components/common/Button';
+import { Product, ProductCategory } from '../types';
 import {
   Heart,
   ShieldCheck,
@@ -24,13 +28,42 @@ import {
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const product = getProductBySlug(slug || '');
+  const initialLocal = getLocalProduct(slug || '');
+  const [product, setProduct] = useState<Product | null>(initialLocal || null);
+  const [isLoading, setIsLoading] = useState(!initialLocal);
+
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useUI();
 
+  useDocumentTitle(
+    product ? `${product.name} | Giftagram` : 'Artisanal Creation | Giftagram',
+    product?.shortDescription
+  );
+
+  useEffect(() => {
+    let mounted = true;
+    if (slug) {
+      // Determine category or search
+      const category: ProductCategory = window.location.pathname.includes('/bouquets/') ? 'bouquets' : 'cakes';
+      productService.getProductBySlug(category, slug).then((res) => {
+        if (mounted && res) {
+          setProduct(res);
+        }
+        if (mounted) setIsLoading(false);
+      });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [slug]);
+
   const [quantity, setQuantity] = useState(1);
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+
+  if (isLoading) {
+    return <ProductDetailsSkeleton />;
+  }
 
   if (!product) {
     return (

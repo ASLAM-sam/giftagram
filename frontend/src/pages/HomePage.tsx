@@ -11,6 +11,7 @@ import { Product } from '../types';
 import { BRAND_CONFIG, CONTACT_CONFIG } from '../config/brand';
 import { Button } from '../components/common/Button';
 import { InstagramIcon } from '../components/common/InstagramIcon';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   Sparkles,
   Heart,
@@ -22,6 +23,11 @@ import {
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
+  useDocumentTitle(
+    'Giftagram | Luxury Cakes, Bouquets & Bespoke Gifting',
+    'Handcrafted artisan cakes, luxury fresh flower bouquets, and curated gifting studio.'
+  );
+
   const [customizingCake, setCustomizingCake] = useState<Product | null>(null);
 
   const featuredCakes = CAKE_PRODUCTS.slice(0, 4);

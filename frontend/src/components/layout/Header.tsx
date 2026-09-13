@@ -5,14 +5,14 @@ import { MAIN_NAV_LINKS } from '../../config/navigation';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useUI } from '../../context/UIContext';
-import { Search, ShoppingBag, Heart, Menu } from 'lucide-react';
+import { Search, ShoppingBag, Heart, Menu, User } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const { itemCount, openDrawer } = useCart();
   const { wishlistCount } = useWishlist();
-  const { openSearch, openMobileMenu } = useUI();
+  const { openSearch, openMobileMenu, openAccount } = useUI();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,20 +65,20 @@ export const Header: React.FC = () => {
         </nav>
 
         {/* Right: Actions (Search, Wishlist, Cart, Mobile Hamburger) */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
           {/* Search Icon */}
           <button
             onClick={openSearch}
-            className="p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors"
+            className="p-1.5 sm:p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors"
             aria-label="Search products"
           >
             <Search className="w-5 h-5 stroke-[1.75]" />
           </button>
 
-          {/* Wishlist Link with count */}
+          {/* Wishlist Link with count (desktop/tablet) */}
           <Link
             to="/wishlist"
-            className="p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors relative"
+            className="hidden sm:inline-flex p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors relative"
             aria-label={`Wishlist (${wishlistCount} items)`}
           >
             <Heart className="w-5 h-5 stroke-[1.75]" />
@@ -89,10 +89,19 @@ export const Header: React.FC = () => {
             )}
           </Link>
 
+          {/* Account & Order Tracking (desktop/tablet) */}
+          <button
+            onClick={openAccount}
+            className="hidden sm:inline-flex p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors relative"
+            aria-label="My Account and Order Tracking"
+          >
+            <User className="w-5 h-5 stroke-[1.75]" />
+          </button>
+
           {/* Cart Icon with count */}
           <button
             onClick={openDrawer}
-            className="p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors relative flex items-center gap-1"
+            className="p-1.5 sm:p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors relative flex items-center gap-1"
             aria-label={`Shopping basket with ${itemCount} items`}
           >
             <div className="relative">
@@ -108,7 +117,7 @@ export const Header: React.FC = () => {
           {/* Mobile Hamburger Toggle */}
           <button
             onClick={openMobileMenu}
-            className="lg:hidden p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors ml-1"
+            className="lg:hidden p-1.5 sm:p-2 text-espresso-800 hover:text-rose-600 rounded-full hover:bg-cream-100/70 transition-colors"
             aria-label="Open mobile navigation"
           >
             <Menu className="w-6 h-6 stroke-[1.75]" />

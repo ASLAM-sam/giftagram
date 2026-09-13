@@ -4,8 +4,13 @@ import { orderService } from '../services/orderService';
 import { Button } from '../components/common/Button';
 import { CONTACT_CONFIG } from '../config/brand';
 import { CheckCircle2, Calendar, Clock, MapPin, Sparkles, MessageCircle, ArrowRight } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { useUI } from '../hooks/useUI';
 
 export const OrderSuccessPage: React.FC = () => {
+  useDocumentTitle('Order Confirmed | Giftagram', 'Your order is confirmed. View your pickup scheduling details and receipt.');
+
+  const { openAccount } = useUI();
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId') || 'GFT-2026-RECENT';
   const order = orderService.getOrderById(orderId);
@@ -117,9 +122,15 @@ export const OrderSuccessPage: React.FC = () => {
       </div>
 
       {/* Action buttons */}
-      <div className="pt-2 flex justify-center gap-4">
+      <div className="pt-2 flex flex-wrap justify-center gap-3">
+        <button
+          onClick={openAccount}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-medium text-sm transition-colors shadow-soft"
+        >
+          <span>Track Order Status</span>
+        </button>
         <Link to="/shop">
-          <Button variant="primary" size="lg" icon={<ArrowRight className="w-4 h-4" />}>
+          <Button variant="outline" size="lg" icon={<ArrowRight className="w-4 h-4" />}>
             Continue Shopping
           </Button>
         </Link>

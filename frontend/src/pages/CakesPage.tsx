@@ -1,17 +1,47 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CAKE_PRODUCTS } from '../data/cakes';
 import { ProductCard } from '../components/product/ProductCard';
 import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModal';
+import { ProductGridSkeleton } from '../components/common/ProductGridSkeleton';
+import { productService } from '../services/productService';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Product } from '../types';
 import { ShieldCheck, SlidersHorizontal, Sparkles } from 'lucide-react';
 
 export const CakesPage: React.FC = () => {
+  useDocumentTitle(
+    'Artisan Cakes | Giftagram',
+    'Handcrafted 500g cakes made fresh to order with Belgian chocolate, real fruit, and custom lettering.'
+  );
+
+  const [cakes, setCakes] = useState<Product[]>(CAKE_PRODUCTS);
+  const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'chocolate' | 'fruit' | 'premium'>('all');
   const [sort, setSort] = useState<'featured' | 'price-asc' | 'price-desc'>('featured');
   const [customizingCake, setCustomizingCake] = useState<Product | null>(null);
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchCakes = async () => {
+      try {
+        const data = await productService.getProducts('cakes');
+        if (mounted && data.length > 0) {
+          setCakes(data);
+        }
+      } catch (err) {
+        console.warn('Could not fetch cakes from API, staying with seeded catalog:', err);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    fetchCakes();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const filteredCakes = useMemo(() => {
-    let list = [...CAKE_PRODUCTS];
+    let list = [...cakes];
 
     if (filter !== 'all') {
       list = list.filter((cake) => cake.flavorCategory === filter);
@@ -24,7 +54,7 @@ export const CakesPage: React.FC = () => {
     }
 
     return list;
-  }, [filter, sort]);
+  }, [cakes, filter, sort]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-10">
@@ -106,15 +136,19 @@ export const CakesPage: React.FC = () => {
       </div>
 
       {/* 4-Column Grid for Cakes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7">
-        {filteredCakes.map((cake) => (
-          <ProductCard
-            key={cake.id}
-            product={cake}
-            onCustomizeClick={(p) => setCustomizingCake(p)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <ProductGridSkeleton count={8} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7">
+          {filteredCakes.map((cake) => (
+            <ProductCard
+              key={cake.id}
+              product={cake}
+              onCustomizeClick={(p) => setCustomizingCake(p)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Customization Modal */}
       {customizingCake && (

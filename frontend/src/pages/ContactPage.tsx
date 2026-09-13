@@ -12,8 +12,14 @@ import {
   Send,
   Sparkles,
 } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const ContactPage: React.FC = () => {
+  useDocumentTitle(
+    'Contact & Studio Pickup | Giftagram',
+    'Get in touch with Giftagram, locate our boutique pickup studio, or chat with our pastry concierge on WhatsApp.'
+  );
+
   const { showToast } = useUI();
   const [formData, setFormData] = useState({
     name: '',

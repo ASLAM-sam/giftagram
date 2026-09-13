@@ -62,18 +62,28 @@ export const SearchModal: React.FC = () => {
             className="relative w-full max-w-2xl bg-[#FFFDF9] rounded-luxury-lg shadow-modal border border-cream-300 overflow-hidden z-10"
           >
             {/* Search Input Bar */}
-            <div className="p-4 sm:p-5 border-b border-cream-200 flex items-center gap-3">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!query.trim()) {
+                  // user submitted empty query
+                  inputRef.current?.focus();
+                }
+              }}
+              className="p-4 sm:p-5 border-b border-cream-200 flex items-center gap-3"
+            >
               <Search className="w-5 h-5 text-rose-500 shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search cakes, bouquets, flavours, chocolate..."
+                placeholder="Type to search cakes or bouquets..."
                 className="w-full bg-transparent text-espresso-900 placeholder:text-espresso-600/60 text-base md:text-lg focus:outline-none"
               />
               {query && (
                 <button
+                  type="button"
                   onClick={() => setQuery('')}
                   className="p-1 text-espresso-600 hover:text-espresso-900 rounded-full hover:bg-cream-100"
                   aria-label="Clear search input"
@@ -82,31 +92,43 @@ export const SearchModal: React.FC = () => {
                 </button>
               )}
               <button
+                type="button"
                 onClick={closeSearch}
                 className="text-xs uppercase tracking-widest text-espresso-600 hover:text-rose-600 px-2 py-1"
                 aria-label="Close search"
               >
                 ESC
               </button>
-            </div>
+            </form>
 
             {/* Quick Suggestions / Results */}
             <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-6">
               {query.trim() === '' ? (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-espresso-600 mb-3">
-                    Popular Searches
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {['Chocolate', 'Roses', 'Biscoff', 'Fruit', 'Photo Bouquet', 'Nutella'].map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => setQuery(tag)}
-                        className="px-3 py-1.5 rounded-full bg-cream-100 hover:bg-blush-100 text-espresso-800 text-xs transition-colors border border-cream-300/80"
-                      >
-                        {tag}
-                      </button>
-                    ))}
+                <div className="space-y-4">
+                  <div className="p-3 bg-blush-50/70 border border-rose-200/60 rounded-luxury text-center">
+                    <p className="font-serif text-sm text-espresso-900 font-medium">
+                      Type to search cakes or bouquets.
+                    </p>
+                    <p className="text-[0.72rem] text-espresso-600 mt-0.5">
+                      Or select one of our most loved artisanal flavors below:
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-espresso-600 mb-3">
+                      Popular Searches
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {['Chocolate', 'Roses', 'Biscoff', 'Fruit', 'Photo Bouquet', 'Nutella'].map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setQuery(tag)}
+                          className="px-3 py-1.5 rounded-full bg-cream-100 hover:bg-blush-100 text-espresso-800 text-xs transition-colors border border-cream-300/80"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : results.length > 0 ? (

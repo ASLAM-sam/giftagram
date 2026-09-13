@@ -6,6 +6,7 @@ import { orderService } from '../services/orderService';
 import { paymentService } from '../services/paymentService';
 import { CONTACT_CONFIG, BRAND_CONFIG } from '../config/brand';
 import { Button } from '../components/common/Button';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   ShieldCheck,
   Calendar,
@@ -17,6 +18,11 @@ import {
 } from 'lucide-react';
 
 export const CheckoutPage: React.FC = () => {
+  useDocumentTitle(
+    'Order & Pickup Checkout | Giftagram',
+    'Confirm your order and reserve your bake schedule with a 50% non-refundable deposit.'
+  );
+
   const { items, subtotal, depositRequired, balanceDue, clearCart } = useCart();
   const { showToast } = useUI();
   const navigate = useNavigate();
@@ -78,8 +84,7 @@ export const CheckoutPage: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      // 1. Create order record (Stub for Cloudflare Workers + D1)
-      // TODO: Connect Cloudflare Worker POST /api/orders
+      // 1. Create order record on Cloudflare Workers + D1
       const orderRes = await orderService.createOrder({
         customer,
         items,
@@ -87,22 +92,27 @@ export const CheckoutPage: React.FC = () => {
         depositRequired,
       });
 
-      // 2. Process deposit payment (Stub for Razorpay Checkout)
-      // TODO: Connect Razorpay checkout modal handler
-      await paymentService.processDepositPayment(
+      const displayOrderNumber = orderRes.orderNumber || orderRes.orderId;
+
+      // 2. Process deposit payment via Razorpay Standard Checkout
+      const paymentRes = await paymentService.processDepositPayment(
         orderRes.orderId,
+        displayOrderNumber,
         depositRequired,
         customer.fullName,
-        customer.phone
+        customer.phone,
+        customer.email
       );
 
       // 3. Clear cart and redirect to order success confirmation
-      clearCart();
-      showToast('Order and deposit confirmed successfully!', 'success');
-      navigate(`/order-success?orderId=${orderRes.orderId}`);
-    } catch (err) {
+      if (paymentRes.success) {
+        clearCart();
+        showToast('50% deposit confirmed and bake reserved!', 'success');
+        navigate(`/order-success?orderId=${displayOrderNumber}`);
+      }
+    } catch (err: any) {
       console.error(err);
-      showToast('An error occurred while processing order. Please try again.', 'error');
+      showToast(err.message || 'An error occurred while processing order. Please try again.', 'error');
     } finally {
       setIsProcessing(false);
     }

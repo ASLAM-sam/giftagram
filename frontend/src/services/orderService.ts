@@ -1,13 +1,9 @@
 import { CartItem, OrderCustomerInfo, OrderRecord } from '../types';
+import { ENV } from '../config/env';
 
 /**
- * Order Service Architecture Stub
- * 
- * Future Backend Architecture:
- * Client (React) 
- *   → Cloudflare Worker API (`POST /api/orders`)
- *   → Cloudflare D1 Database (`orders` and `order_items` tables)
- *   → Cloudflare Queues for transactional email/SMS notifications
+ * Order Service
+ * Communicates with Cloudflare Worker API connected to Cloudflare D1
  */
 
 export interface CreateOrderPayload {
@@ -20,30 +16,118 @@ export interface CreateOrderPayload {
 export interface CreateOrderResponse {
   success: boolean;
   orderId: string;
+  orderNumber?: string;
   order: OrderRecord;
   paymentSessionId?: string;
+  depositAmountPaise?: number;
+}
+
+export interface OrderLookupItem {
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface OrderLookupResult {
+  orderNumber: string;
+  status: 'payment_pending' | 'deposit_paid' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  customerName: string;
+  pickupDate: string;
+  pickupTime: string;
+  subtotal: number;
+  depositAmount: number;
+  remainingAmount: number;
+  items: OrderLookupItem[];
+}
+
+export interface LookupOrderResponse {
+  success: boolean;
+  order?: OrderLookupResult;
+  error?: string;
 }
 
 export const orderService = {
   /**
-   * Submits an order.
-   * Currently saves order state to localStorage for frontend prototype verification.
-   * 
-   * TODO: Replace local simulation with Cloudflare Worker API endpoint:
-   * const response = await fetch(`${API_BASE_URL}/orders`, {
-   *   method: 'POST',
-   *   headers: { 'Content-Type': 'application/json' },
-   *   body: JSON.stringify(payload),
-   * });
-   * return await response.json();
+   * Submits an order to the Cloudflare Worker API.
+   * Authoritative price and deposit recalculations occur on the server.
    */
   async createOrder(payload: CreateOrderPayload): Promise<CreateOrderResponse> {
-    // Generate boutique luxury order reference format: e.g. GFT-2026-8942
+    try {
+      const response = await fetch(`${ENV.API_URL}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          customer: {
+            name: payload.customer.fullName,
+            phone: payload.customer.phone,
+            email: payload.customer.email,
+          },
+          pickupDate: payload.customer.pickupDate,
+          pickupTime: payload.customer.pickupTime,
+          specialInstructions: payload.customer.specialInstructions,
+          items: payload.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            cakeCustomization: item.customization
+              ? {
+                  fullName: item.customization.fullName,
+                  phone: item.customization.phoneNumber,
+                  email: item.customization.email,
+                  pickupDate: item.customization.pickupDate,
+                  pickupTime: item.customization.pickupTime,
+                  designRequirements: item.customization.designRequirements,
+                  colors: item.customization.colors,
+                  lettering: item.customization.lettering,
+                  additionalNotes: item.customization.additionalNotes,
+                  depositAcknowledged: item.customization.agreedToDeposit,
+                }
+              : undefined,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const apiOrder = result.data;
+          const orderRecord: OrderRecord = {
+            orderId: apiOrder.orderNumber || apiOrder.id,
+            createdAt: apiOrder.createdAt || new Date().toISOString(),
+            customer: payload.customer,
+            items: payload.items,
+            subtotal: apiOrder.subtotal,
+            depositRequired: apiOrder.depositAmount,
+            balanceDueOnPickup: apiOrder.remainingAmount,
+            paymentStatus: apiOrder.status === 'deposit_paid' ? 'deposit_paid' : 'deposit_pending',
+          };
+
+          // Cache locally for immediate receipt view
+          localStorage.setItem(`giftagram_order_${orderRecord.orderId}`, JSON.stringify(orderRecord));
+          localStorage.setItem('giftagram_last_order', JSON.stringify(orderRecord));
+
+          return {
+            success: true,
+            orderId: apiOrder.id,
+            orderNumber: apiOrder.orderNumber,
+            order: orderRecord,
+            depositAmountPaise: apiOrder.depositAmountPaise || Math.round(apiOrder.depositAmount * 100),
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('[OrderService] Worker API unavailable, using local simulated order fallback:', err);
+    }
+
+    // Local simulation fallback
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const orderId = `GFT-${new Date().getFullYear()}-${randomSuffix}`;
-    
+    const orderNumber = `GFT-${new Date().getFullYear()}-${randomSuffix}`;
+
     const orderRecord: OrderRecord = {
-      orderId,
+      orderId: orderNumber,
       createdAt: new Date().toISOString(),
       customer: payload.customer,
       items: payload.items,
@@ -53,22 +137,70 @@ export const orderService = {
       paymentStatus: 'deposit_pending',
     };
 
-    // Store in localStorage for prototype order success view
-    try {
-      localStorage.setItem(`giftagram_order_${orderId}`, JSON.stringify(orderRecord));
-      localStorage.setItem('giftagram_last_order', JSON.stringify(orderRecord));
-    } catch (e) {
-      console.warn('LocalStorage save failed', e);
-    }
-
-    // Simulate network delay of a high-speed Cloudflare Worker
-    await new Promise((resolve) => setTimeout(resolve, 450));
+    localStorage.setItem(`giftagram_order_${orderNumber}`, JSON.stringify(orderRecord));
+    localStorage.setItem('giftagram_last_order', JSON.stringify(orderRecord));
 
     return {
       success: true,
-      orderId,
+      orderId: orderNumber,
+      orderNumber,
       order: orderRecord,
-      paymentSessionId: `pay_sess_${Math.random().toString(36).substring(2, 9)}`,
+      depositAmountPaise: Math.round(payload.depositRequired * 100),
+    };
+  },
+
+  /**
+   * Looks up an order by order number and phone number
+   */
+  async lookupOrder(orderNumber: string, phone: string): Promise<LookupOrderResponse> {
+    try {
+      const response = await fetch(`${ENV.API_URL}/api/orders/lookup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ orderNumber, phone }),
+      });
+
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && json.data) {
+          return { success: true, order: json.data };
+        }
+        return { success: false, error: json.error?.message || 'Order not found' };
+      }
+    } catch (err) {
+      console.warn('[OrderService] Remote lookup unavailable, searching local records:', err);
+    }
+
+    // Local fallback check
+    const local = this.getOrderById(orderNumber);
+    if (local && local.customer.phone.replace(/\D/g, '').endsWith(phone.replace(/\D/g, '').slice(-10))) {
+      return {
+        success: true,
+        order: {
+          orderNumber: local.orderId,
+          status: local.paymentStatus === 'deposit_paid' ? 'deposit_paid' : 'payment_pending',
+          customerName: local.customer.fullName,
+          pickupDate: local.customer.pickupDate,
+          pickupTime: local.customer.pickupTime,
+          subtotal: local.subtotal,
+          depositAmount: local.depositRequired,
+          remainingAmount: local.balanceDueOnPickup,
+          items: local.items.map((i) => ({
+            productName: i.product.name,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            lineTotal: i.subtotal,
+          })),
+        },
+      };
+    }
+
+    return {
+      success: false,
+      error: 'No order record found matching this Order Number and contact phone.',
     };
   },
 

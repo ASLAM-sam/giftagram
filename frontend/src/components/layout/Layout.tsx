@@ -7,6 +7,8 @@ import { CartDrawer } from '../cart/CartDrawer';
 import { SearchModal } from '../search/SearchModal';
 import { ToastContainer } from '../common/ToastContainer';
 
+import { AccountDrawer } from '../account/AccountDrawer';
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -31,6 +33,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <MobileMenu />
       <CartDrawer />
       <SearchModal />
+      <AccountDrawer />
       <ToastContainer />
     </div>
   );

@@ -1,86 +1,94 @@
 /**
- * Giftagram API — Cloudflare Workers Entry Point
+ * Giftagram API — Cloudflare Workers Master Entry Point
  * 
  * Connected to:
- * - Cloudflare D1 (Database)
- * - Cloudflare R2 (Product & Reference Photos)
- * - Razorpay (Payment Processing)
+ * - Cloudflare D1 (giftagram-db)
+ * - Cloudflare R2 (giftagram-images)
+ * - Razorpay (Server-Side Payment Authorization & Signature Verification)
  */
 
-export interface Env {
-  DB: any; // D1Database
-  IMAGES_BUCKET: any; // R2Bucket
-  RAZORPAY_KEY_ID: string;
-  RAZORPAY_KEY_SECRET: string;
-  FRONTEND_URL: string;
-}
+import { Env } from './env';
+import { getCorsHeaders, errorResponse } from './utils/response';
+import { handleHealthCheck } from './routes/health';
+import { handleGetProducts, handleGetProductBySlug, handleGetCategories } from './routes/products';
+import { handleCreateOrder } from './routes/orders';
+import { handleOrderLookup } from './routes/orderLookup';
+import { handleCreatePaymentOrder, handleVerifyPayment, handlePaymentWebhook } from './routes/payments';
 
 export default {
-  async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
-    const url = new URL(request.url);
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const corsHeaders = getCorsHeaders(request, env.CORS_ORIGINS);
 
-    // CORS Headers for Cloudflare Pages frontend
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    };
-
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-
-    // Health check
-    if (url.pathname === "/api/health") {
-      return new Response(JSON.stringify({ status: "healthy", timestamp: new Date().toISOString() }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // 1. Handle CORS Preflight (OPTIONS)
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
       });
     }
 
-    // Orders Endpoint
-    if (url.pathname === "/api/orders" && request.method === "POST") {
-      try {
-        const body = await request.json() as any;
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const orderId = `GFT-${new Date().getFullYear()}-${randomSuffix}`;
-        const depositRequired = Math.round(body.subtotal * 0.5 * 100) / 100;
+    try {
+      const url = new URL(request.url);
+      const path = url.pathname;
+      const method = request.method;
 
-        // In production: INSERT INTO orders ... (env.DB)
-        return new Response(
-          JSON.stringify({
-            success: true,
-            orderId,
-            depositRequired,
-            balanceDue: body.subtotal - depositRequired,
-            message: "Order initiated. Ready for Razorpay deposit payment.",
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      let response: Response;
+
+      // 2. Route Dispatcher
+      // Health Check
+      if (path === '/api/health' && method === 'GET') {
+        response = await handleHealthCheck(request, env);
       }
-    }
+      // Products Listing
+      else if (path === '/api/products' && method === 'GET') {
+        response = await handleGetProducts(request, env);
+      }
+      // Categories Listing
+      else if (path === '/api/categories' && method === 'GET') {
+        response = await handleGetCategories(request, env);
+      }
+      // Single Product by Slug
+      else if (path.startsWith('/api/products/') && method === 'GET') {
+        const slug = decodeURIComponent(path.replace('/api/products/', ''));
+        response = await handleGetProductBySlug(request, env, slug);
+      }
+      // Create Order
+      else if (path === '/api/orders' && method === 'POST') {
+        response = await handleCreateOrder(request, env);
+      }
+      // Order Lookup / Tracking
+      else if (path === '/api/orders/lookup' && method === 'POST') {
+        response = await handleOrderLookup(request, env);
+      }
+      // Create Razorpay Order
+      else if ((path === '/api/payments/create-order' || path === '/api/payments/razorpay/create-order') && method === 'POST') {
+        response = await handleCreatePaymentOrder(request, env);
+      }
+      // Verify Razorpay Signature
+      else if ((path === '/api/payments/verify' || path === '/api/payments/razorpay/verify') && method === 'POST') {
+        response = await handleVerifyPayment(request, env);
+      }
+      // Razorpay Webhook
+      else if (path === '/api/payments/webhook' && method === 'POST') {
+        response = await handlePaymentWebhook(request, env);
+      }
+      // 404 Route Not Found
+      else {
+        response = errorResponse('ROUTE_NOT_FOUND', `Cannot ${method} ${path}`, 404);
+      }
 
-    // Razorpay Create Order Endpoint
-    if (url.pathname === "/api/payments/razorpay/create-order" && request.method === "POST") {
-      const body = await request.json() as any;
-      return new Response(
-        JSON.stringify({
-          success: true,
-          razorpayOrderId: `order_${Math.random().toString(36).substring(2, 12)}`,
-          amountPaise: Math.round(body.depositAmount * 100),
-          currency: "INR",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      // 3. Inject CORS Headers into the final response
+      const newHeaders = new Headers(response.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => newHeaders.set(k, v));
 
-    return new Response(JSON.stringify({ error: "Route not found" }), {
-      status: 404,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    } catch (unhandledErr: any) {
+      console.error('[Worker Unhandled Error]:', unhandledErr);
+      return errorResponse('INTERNAL_SERVER_ERROR', 'An unexpected server error occurred', 500, undefined, corsHeaders);
+    }
   },
 };

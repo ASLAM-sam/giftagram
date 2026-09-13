@@ -117,15 +117,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onCustomizeCl
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {product.category === 'cakes' ? (
-              <Link
-                to={`/cakes/${product.slug}`}
-                className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-700 bg-blush-50 hover:bg-blush-100 px-3 py-1.5 rounded-full transition-colors border border-rose-200/60"
-              >
-                <span>View Details</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="flex items-center gap-1.5">
+                {onCustomizeClick && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onCustomizeClick(product);
+                    }}
+                    className="inline-flex items-center gap-1 text-[0.72rem] font-medium text-white bg-rose-500 hover:bg-rose-600 px-2.5 py-1.5 rounded-full transition-colors shadow-soft"
+                    aria-label={`Quick customize ${product.name}`}
+                  >
+                    <span>Customize</span>
+                  </button>
+                )}
+                <Link
+                  to={`/cakes/${product.slug}`}
+                  className="inline-flex items-center gap-1 text-[0.72rem] font-medium text-rose-600 hover:text-rose-700 bg-blush-50 hover:bg-blush-100 px-2.5 py-1.5 rounded-full transition-colors border border-rose-200/60"
+                  aria-label={`View details for ${product.name}`}
+                >
+                  <span>Details</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              </div>
             ) : (
               <button
                 onClick={handleQuickAdd}

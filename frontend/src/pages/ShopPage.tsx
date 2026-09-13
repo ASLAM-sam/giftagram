@@ -4,8 +4,14 @@ import { ProductCard } from '../components/product/ProductCard';
 import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModal';
 import { Product } from '../types';
 import { SlidersHorizontal } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const ShopPage: React.FC = () => {
+  useDocumentTitle(
+    'Artisan Menu & Collections | Giftagram',
+    'Browse our full collection of fresh 500g cakes and hand-tied luxury bouquets.'
+  );
+
   const [activeTab, setActiveTab] = useState<'all' | 'cakes' | 'bouquets'>('all');
   const [sort, setSort] = useState<'featured' | 'price-asc' | 'price-desc'>('featured');
   const [customizingCake, setCustomizingCake] = useState<Product | null>(null);

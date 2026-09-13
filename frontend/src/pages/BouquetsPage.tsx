@@ -1,14 +1,45 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BOUQUET_PRODUCTS, BOUQUET_DISCLAIMERS } from '../data/bouquets';
 import { ProductCard } from '../components/product/ProductCard';
+import { ProductGridSkeleton } from '../components/common/ProductGridSkeleton';
+import { productService } from '../services/productService';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { Product } from '../types';
 import { Info, SlidersHorizontal, AlertCircle } from 'lucide-react';
 
 export const BouquetsPage: React.FC = () => {
+  useDocumentTitle(
+    'Luxury Bouquets | Giftagram',
+    'Handcrafted floral arrangements, fresh red rose bouquets, chocolate bouquets, and photo keepsakes.'
+  );
+
+  const [bouquets, setBouquets] = useState<Product[]>(BOUQUET_PRODUCTS);
+  const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'roses' | 'chocolate' | 'photo'>('all');
   const [sort, setSort] = useState<'featured' | 'price-asc' | 'price-desc'>('featured');
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchBouquets = async () => {
+      try {
+        const data = await productService.getProducts('bouquets');
+        if (mounted && data.length > 0) {
+          setBouquets(data);
+        }
+      } catch (err) {
+        console.warn('Could not fetch bouquets from API, staying with seeded catalog:', err);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    fetchBouquets();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const filteredBouquets = useMemo(() => {
-    let list = [...BOUQUET_PRODUCTS];
+    let list = [...bouquets];
 
     if (filter !== 'all') {
       list = list.filter((b) => b.bouquetCategory === filter);
@@ -21,7 +52,7 @@ export const BouquetsPage: React.FC = () => {
     }
 
     return list;
-  }, [filter, sort]);
+  }, [bouquets, filter, sort]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-10">
@@ -101,11 +132,15 @@ export const BouquetsPage: React.FC = () => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
-        {filteredBouquets.map((bouquet) => (
-          <ProductCard key={bouquet.id} product={bouquet} />
-        ))}
-      </div>
+      {isLoading ? (
+        <ProductGridSkeleton count={6} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+          {filteredBouquets.map((bouquet) => (
+            <ProductCard key={bouquet.id} product={bouquet} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

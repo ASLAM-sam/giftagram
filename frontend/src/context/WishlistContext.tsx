@@ -7,7 +7,7 @@ interface WishlistContextType {
   wishlistCount: number;
 }
 
-const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
+export const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 const WISHLIST_STORAGE_KEY = 'giftagram_wishlist_v1';
 
@@ -51,10 +51,4 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-export const useWishlist = () => {
-  const context = useContext(WishlistContext);
-  if (!context) {
-    throw new Error('useWishlist must be used within a WishlistProvider');
-  }
-  return context;
-};
+export { useWishlist } from '../hooks/useWishlist';

@@ -1,30 +1,35 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useState } from 'react';
+import { useUI } from '../hooks/useUI';
 
-interface Toast {
+export interface Toast {
   id: string;
   message: string;
   type: 'success' | 'info' | 'error';
 }
 
-interface UIContextType {
+export interface UIContextType {
   isSearchOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
   isMobileMenuOpen: boolean;
   openMobileMenu: () => void;
   closeMobileMenu: () => void;
+  isAccountOpen: boolean;
+  openAccount: () => void;
+  closeAccount: () => void;
   toasts: Toast[];
   showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
   removeToast: (id: string) => void;
 }
 
-const UIContext = createContext<UIContextType | undefined>(undefined);
+export const UIContext = createContext<UIContextType | undefined>(undefined);
 
 let toastCounter = 0;
 
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -49,6 +54,9 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         isMobileMenuOpen,
         openMobileMenu: () => setIsMobileMenuOpen(true),
         closeMobileMenu: () => setIsMobileMenuOpen(false),
+        isAccountOpen,
+        openAccount: () => setIsAccountOpen(true),
+        closeAccount: () => setIsAccountOpen(false),
         toasts,
         showToast,
         removeToast,
@@ -59,10 +67,4 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   );
 };
 
-export const useUI = () => {
-  const context = useContext(UIContext);
-  if (!context) {
-    throw new Error('useUI must be used within a UIProvider');
-  }
-  return context;
-};
+export { useUI };

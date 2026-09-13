@@ -3,8 +3,13 @@ import { Link } from 'react-router-dom';
 import { BRAND_CONFIG, CONTACT_CONFIG } from '../config/brand';
 import { Button } from '../components/common/Button';
 import { Heart, Sparkles, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export const AboutPage: React.FC = () => {
+  useDocumentTitle(
+    'About Giftagram | Luxury Gifting Studio',
+    'Discover the story behind Giftagram—our artisanal baking standards, floral craftsmanship, and studio values.'
+  );
   return (
     <div className="space-y-16 sm:space-y-24 py-10 sm:py-16 pb-20">
       {/* Editorial Hero Header */}
