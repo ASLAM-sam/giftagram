@@ -4,8 +4,15 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "npm run dev --prefix frontend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:backend:remote": "npx wrangler dev --remote --cwd backend",
     "build": "npm run build --prefix frontend",
-    "deploy": "npm run deploy --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "deploy:frontend": "npm run deploy --prefix frontend",
+    "deploy:backend": "npm run deploy --prefix backend",
+    "test:backend": "npm run test --prefix backend",
+    "test:production": "npx tsx test/production.test.ts --prefix backend",
     "preview": "npm run preview --prefix frontend",
     "lint": "npm run lint --prefix frontend"
   }
