@@ -35,8 +35,40 @@ export default {
       let response: Response;
 
       // 2. Route Dispatcher
+      // Root info endpoint
+      if ((path === '/' || path === '') && method === 'GET') {
+        response = new Response(
+          JSON.stringify(
+            {
+              success: true,
+              name: 'Giftagram API — Cloudflare Workers & D1',
+              status: 'online',
+              version: '1.0.0',
+              environment: env.ENVIRONMENT || 'production',
+              description: 'Backend REST API for Giftagram luxury cakes and floral gifting.',
+              endpoints: {
+                health: '/api/health',
+                products: '/api/products',
+                categories: '/api/categories',
+                orders: '/api/orders',
+                orderLookup: '/api/orders/lookup',
+              },
+              frontend: 'https://giftagram-frontend.hydpurefumes.workers.dev',
+            },
+            null,
+            2
+          ),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders,
+            },
+          }
+        );
+      }
       // Health Check
-      if (path === '/api/health' && method === 'GET') {
+      else if (path === '/api/health' && method === 'GET') {
         response = await handleHealthCheck(request, env);
       }
       // Products Listing

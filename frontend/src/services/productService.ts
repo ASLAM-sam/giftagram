@@ -43,7 +43,13 @@ export const productService = {
 
       const json = await response.json();
       if (json.success && Array.isArray(json.data)) {
-        return json.data;
+        return json.data.map((p: any) => {
+          const local = [...CAKE_PRODUCTS, ...BOUQUET_PRODUCTS].find((lp) => lp.slug === p.slug);
+          if (local && local.images && local.images.length > 0) {
+            p.images = local.images;
+          }
+          return p;
+        });
       }
       return json;
     } catch (err) {
@@ -74,6 +80,10 @@ export const productService = {
       if (response.ok) {
         const json = await response.json();
         if (json.success && json.data) {
+          const localMatch = (LOCAL_PRODUCTS[category] || []).find((p) => p.slug === slug);
+          if (localMatch && localMatch.images && localMatch.images.length > 0) {
+            json.data.images = localMatch.images;
+          }
           return json.data;
         }
       }
