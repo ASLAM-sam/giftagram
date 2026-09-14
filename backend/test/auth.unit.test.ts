@@ -74,14 +74,23 @@ export async function runAuthUnitTests(): Promise<{ passed: number; failed: numb
   assert(loginCookieHeader.includes(`${ADMIN_SESSION_COOKIE_NAME}=${token1}`), 'Set-Cookie contains cookie name and token');
   assert(loginCookieHeader.includes('HttpOnly'), 'Set-Cookie includes HttpOnly');
   assert(loginCookieHeader.includes('Secure'), 'Set-Cookie includes Secure when isSecure is true');
-  assert(loginCookieHeader.includes('SameSite=Lax'), 'Set-Cookie includes SameSite=Lax');
+  assert(loginCookieHeader.includes('SameSite=None'), 'Set-Cookie includes SameSite=None when isSecure is true');
   assert(loginCookieHeader.includes('Path=/'), 'Set-Cookie includes Path=/');
   assert(loginCookieHeader.includes('Max-Age=604800'), 'Set-Cookie includes Max-Age=604800 (7 days)');
+
+  const localCookieHeader = createAdminSessionCookie(token1, false);
+  assert(localCookieHeader.includes('SameSite=Lax'), 'Set-Cookie includes SameSite=Lax when isSecure is false');
+  assert(!localCookieHeader.includes('Secure'), 'Set-Cookie omits Secure when isSecure is false');
 
   const clearCookieHeader = createAdminClearCookie(false);
   assert(clearCookieHeader.includes(`${ADMIN_SESSION_COOKIE_NAME}=`), 'Clear cookie sets empty value');
   assert(clearCookieHeader.includes('Max-Age=0'), 'Clear cookie sets Max-Age=0');
   assert(!clearCookieHeader.includes('Secure'), 'Clear cookie omits Secure when isSecure is false');
+  assert(clearCookieHeader.includes('SameSite=Lax'), 'Clear cookie includes SameSite=Lax when isSecure is false');
+
+  const clearCookieSecureHeader = createAdminClearCookie(true);
+  assert(clearCookieSecureHeader.includes('Secure'), 'Clear cookie includes Secure when isSecure is true');
+  assert(clearCookieSecureHeader.includes('SameSite=None'), 'Clear cookie includes SameSite=None when isSecure is true');
 
   return { passed, failed };
 }

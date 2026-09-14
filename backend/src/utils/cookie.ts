@@ -101,7 +101,7 @@ export function createAdminSessionCookie(
     maxAge: maxAgeSeconds,
     httpOnly: true,
     secure: isSecure,
-    sameSite: 'Lax',
+    sameSite: isSecure ? 'None' : 'Lax',
     path: '/',
   });
 }
@@ -114,7 +114,7 @@ export function createAdminClearCookie(isSecure: boolean): string {
     maxAge: 0,
     httpOnly: true,
     secure: isSecure,
-    sameSite: 'Lax',
+    sameSite: isSecure ? 'None' : 'Lax',
     path: '/',
   });
 }

@@ -25,13 +25,13 @@ async function bootstrapAdmin() {
   }
 
   const username = (argMap.username || 'giftstudio').trim().toLowerCase();
-  const password = argMap.password;
+  const password = process.env.ADMIN_BOOTSTRAP_PASSWORD || argMap.password;
   const fullName = argMap.name || 'Giftagram Atelier Admin';
   const role = argMap.role || 'admin';
   const isRemote = argMap.remote === 'true';
 
   if (!password || !password.trim()) {
-    console.error('Error: Password is required. Provide it via --password=<password>');
+    console.error('Error: Password is required. Provide it via --password=<password> or ADMIN_BOOTSTRAP_PASSWORD env var');
     process.exit(1);
   }
 
@@ -54,7 +54,7 @@ async function bootstrapAdmin() {
   const escapedUsername = username.replace(/'/g, "''");
 
   const checkSql = `SELECT id, username, active FROM admin_users WHERE username = '${escapedUsername}';`;
-  const existingOutput = execSync(`npx wrangler d1 execute DB ${d1Flag} --command "${checkSql}"`, {
+  const existingOutput = execSync(`npx wrangler d1 execute DB ${d1Flag} --command "${checkSql}" --json`, {
     cwd: path.resolve(__dirname, '..'),
     encoding: 'utf-8',
   });
@@ -62,14 +62,14 @@ async function bootstrapAdmin() {
   if (existingOutput.includes(escapedUsername)) {
     console.log(`Admin user '${username}' already exists. Updating password hash and details...`);
     const updateSql = `UPDATE admin_users SET password_hash = '${escapedHash}', full_name = '${escapedName}', role = '${role}', active = 1, updated_at = CURRENT_TIMESTAMP WHERE username = '${escapedUsername}';`;
-    execSync(`npx wrangler d1 execute DB ${d1Flag} --command "${updateSql}"`, {
+    execSync(`npx wrangler d1 execute DB ${d1Flag} --command "${updateSql}" --json`, {
       cwd: path.resolve(__dirname, '..'),
       stdio: 'inherit',
     });
   } else {
     console.log(`Inserting new admin user '${username}'...`);
     const insertSql = `INSERT INTO admin_users (id, username, password_hash, full_name, role, active) VALUES ('${adminId}', '${escapedUsername}', '${escapedHash}', '${escapedName}', '${role}', 1);`;
-    execSync(`npx wrangler d1 execute DB ${d1Flag} --command "${insertSql}"`, {
+    execSync(`npx wrangler d1 execute DB ${d1Flag} --command "${insertSql}" --json`, {
       cwd: path.resolve(__dirname, '..'),
       stdio: 'inherit',
     });
