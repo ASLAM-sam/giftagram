@@ -139,11 +139,12 @@ export const CakesPage: React.FC = () => {
       {isLoading ? (
         <ProductGridSkeleton count={8} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7">
-          {filteredCakes.map((cake) => (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+          {filteredCakes.map((cake, idx) => (
             <ProductCard
               key={cake.id}
               product={cake}
+              priority={idx < 4}
               onCustomizeClick={(p) => setCustomizingCake(p)}
             />
           ))}

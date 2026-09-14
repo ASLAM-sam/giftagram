@@ -7,14 +7,27 @@
  * 3. Future: Client uploads for inspiration photos stored via signed Cloudinary APIs.
  */
 
+import {
+  getOptimizedImageUrl,
+  getResponsiveSrcSet,
+  CARD_IMAGE_SIZES,
+  ImageTransformOptions,
+} from '../utils/imageOptimizer';
+
+export { getOptimizedImageUrl, getResponsiveSrcSet, CARD_IMAGE_SIZES };
+export type { ImageTransformOptions };
+
 export const imageService = {
   /**
-   * Resolves image URL.
+   * Resolves image URL with optional Cloudinary optimizations (f_auto, q_auto, width, height).
    */
-  resolveImageUrl(path: string): string {
-    // Backend API already returns fully qualified Cloudinary secure_urls,
-    // or falls back to local /public paths for legacy items.
-    return path;
+  resolveImageUrl(path: string, options?: ImageTransformOptions): string {
+    if (!path) return '/images/cakes/chocolate-belgium.jpg';
+    if (options) {
+      return getOptimizedImageUrl(path, options);
+    }
+    // Default to auto format & auto quality optimization if Cloudinary hosted
+    return getOptimizedImageUrl(path, { quality: 'auto', format: 'auto' });
   },
 
   /**

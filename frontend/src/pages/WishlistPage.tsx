@@ -54,11 +54,12 @@ export const WishlistPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7">
-        {favoritedProducts.map((product) => (
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+        {favoritedProducts.map((product, idx) => (
           <ProductCard
             key={product.id}
             product={product}
+            priority={idx < 4}
             onCustomizeClick={(p) => setCustomizingCake(p)}
           />
         ))}

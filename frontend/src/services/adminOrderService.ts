@@ -1,11 +1,26 @@
 import { ENV } from '../config/env';
 
+export interface AdminDeliveryAddressSnapshot {
+  addressLine1: string;
+  addressLine2?: string;
+  locality: string;
+  city: string;
+  state: string;
+  pincode: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
+  instructions?: string;
+}
+
 export interface AdminOrderSummary {
   id: string;
   orderNumber: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
+  fulfillmentType?: 'delivery' | 'pickup';
+  deliveryDate?: string;
+  deliveryTime?: string;
   status: string;
   subtotal: number;
   depositAmount: number;
@@ -63,6 +78,7 @@ export interface AdminOrderEvent {
 }
 
 export interface AdminOrderDetail extends AdminOrderSummary {
+  deliveryAddress?: AdminDeliveryAddressSnapshot;
   items: AdminOrderItemDetail[];
   payments: AdminPaymentRecord[];
   events: AdminOrderEvent[];

@@ -38,15 +38,80 @@ export function validateCreateOrderInput(body: any): {
     }
   }
 
-  // 2. Validate Pickup Date & Time
-  const pickupDate = String(body.pickupDate || '').trim();
-  if (!pickupDate) {
-    errors.push({ field: 'pickupDate', message: 'Pickup date is required' });
-  }
+  // 2. Validate Fulfillment: Delivery Address or Studio Pickup
+  const fulfillmentType: 'delivery' | 'pickup' =
+    body.fulfillmentType === 'pickup' || (!body.fulfillmentType && body.pickupDate && !body.deliveryAddress)
+      ? 'pickup'
+      : 'delivery';
 
-  const pickupTime = String(body.pickupTime || '').trim();
-  if (!pickupTime) {
-    errors.push({ field: 'pickupTime', message: 'Pickup time window is required' });
+  let validatedDeliveryAddress: CreateOrderInput['deliveryAddress'];
+  let pickupDate = String(body.pickupDate || '').trim();
+  let pickupTime = String(body.pickupTime || '').trim();
+
+  if (fulfillmentType === 'delivery') {
+    const addr = body.deliveryAddress;
+    if (!addr || typeof addr !== 'object') {
+      errors.push({ field: 'deliveryAddress', message: 'Delivery address is required for doorstep delivery' });
+    } else {
+      const line1 = String(addr.addressLine1 || '').trim();
+      if (!line1 || line1.length < 3) {
+        errors.push({ field: 'deliveryAddress.addressLine1', message: 'Address line 1 (house/flat/building/street) is required' });
+      }
+
+      const locality = String(addr.locality || '').trim();
+      if (!locality || locality.length < 2) {
+        errors.push({ field: 'deliveryAddress.locality', message: 'Locality or area is required' });
+      }
+
+      const city = String(addr.city || '').trim();
+      if (!city || city.length < 2) {
+        errors.push({ field: 'deliveryAddress.city', message: 'City is required' });
+      }
+
+      const state = String(addr.state || '').trim();
+      if (!state || state.length < 2) {
+        errors.push({ field: 'deliveryAddress.state', message: 'State is required' });
+      }
+
+      const rawPincode = String(addr.pincode || '').trim();
+      if (!/^\d{6}$/.test(rawPincode)) {
+        errors.push({ field: 'deliveryAddress.pincode', message: 'Valid 6-digit Indian PIN code is required' });
+      }
+
+      const deliveryDate = String(addr.deliveryDate || body.deliveryDate || body.pickupDate || '').trim();
+      if (!deliveryDate) {
+        errors.push({ field: 'deliveryAddress.deliveryDate', message: 'Delivery date is required' });
+      }
+
+      const deliveryTime = String(addr.deliveryTime || body.deliveryTime || body.pickupTime || '').trim();
+      if (!deliveryTime) {
+        errors.push({ field: 'deliveryAddress.deliveryTime', message: 'Preferred delivery time slot is required' });
+      }
+
+      if (errors.length === 0) {
+        validatedDeliveryAddress = {
+          addressLine1: line1,
+          addressLine2: addr.addressLine2 ? String(addr.addressLine2).trim() : undefined,
+          locality,
+          city,
+          state,
+          pincode: rawPincode,
+          deliveryDate,
+          deliveryTime,
+        };
+        // Normalize pickupDate / pickupTime for internal scheduling and notifications
+        pickupDate = deliveryDate;
+        pickupTime = deliveryTime;
+      }
+    }
+  } else {
+    // Pickup mode validation
+    if (!pickupDate) {
+      errors.push({ field: 'pickupDate', message: 'Pickup date is required' });
+    }
+    if (!pickupTime) {
+      errors.push({ field: 'pickupTime', message: 'Pickup time window is required' });
+    }
   }
 
   // 3. Validate Items
@@ -102,9 +167,17 @@ export function validateCreateOrderInput(body: any): {
         phone: normalizedPhone,
         email: body.customer.email ? String(body.customer.email).trim() : undefined,
       },
+      fulfillmentType,
+      deliveryAddress: validatedDeliveryAddress,
       pickupDate,
       pickupTime,
-      specialInstructions: body.specialInstructions ? String(body.specialInstructions).trim() : undefined,
+      specialInstructions: body.specialInstructions
+        ? String(body.specialInstructions).trim()
+        : (body.deliveryAddress && body.deliveryAddress.instructions)
+        ? String(body.deliveryAddress.instructions).trim()
+        : body.notes
+        ? String(body.notes).trim()
+        : undefined,
       items: body.items.map((i: any) => ({
         productId: String(i.productId).trim(),
         quantity: Math.floor(Number(i.quantity)),

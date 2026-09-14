@@ -8,6 +8,7 @@
 
 import { Env } from './env';
 import { getCorsHeaders, errorResponse } from './utils/response';
+import { checkRateLimit, createRateLimitResponse } from './services/rateLimiter';
 import { handleHealthCheck } from './routes/health';
 import { handleGetProducts, handleGetProductBySlug, handleGetCategories } from './routes/products';
 import { handleCreateOrder } from './routes/orders';
@@ -104,28 +105,38 @@ export default {
         const slug = decodeURIComponent(path.replace('/api/products/', ''));
         response = await handleGetProductBySlug(request, env, slug);
       }
-      // Create Order
+      // Create Order (Rate limited: 10 per 10 minutes)
       else if (path === '/api/orders' && method === 'POST') {
+        const rl = await checkRateLimit(env, request, { action: 'create_order', limit: 10, windowSeconds: 600 });
+        if (!rl.allowed) return createRateLimitResponse(rl.retryAfter, corsHeaders);
         response = await handleCreateOrder(request, env);
       }
-      // Order Lookup / Tracking
+      // Order Lookup / Tracking (Rate limited: 20 per 5 minutes)
       else if (path === '/api/orders/lookup' && method === 'POST') {
+        const rl = await checkRateLimit(env, request, { action: 'order_lookup', limit: 20, windowSeconds: 300 });
+        if (!rl.allowed) return createRateLimitResponse(rl.retryAfter, corsHeaders);
         response = await handleOrderLookup(request, env);
       }
-      // Create Razorpay Order
+      // Create Razorpay Order (Rate limited: 15 per 5 minutes)
       else if ((path === '/api/payments/create-order' || path === '/api/payments/razorpay/create-order') && method === 'POST') {
+        const rl = await checkRateLimit(env, request, { action: 'payment_create_order', limit: 15, windowSeconds: 300 });
+        if (!rl.allowed) return createRateLimitResponse(rl.retryAfter, corsHeaders);
         response = await handleCreatePaymentOrder(request, env);
       }
-      // Verify Razorpay Signature
+      // Verify Razorpay Signature (Rate limited: 15 per 5 minutes)
       else if ((path === '/api/payments/verify' || path === '/api/payments/razorpay/verify') && method === 'POST') {
+        const rl = await checkRateLimit(env, request, { action: 'payment_verify', limit: 15, windowSeconds: 300 });
+        if (!rl.allowed) return createRateLimitResponse(rl.retryAfter, corsHeaders);
         response = await handleVerifyPayment(request, env);
       }
       // Razorpay Webhook
       else if (path === '/api/payments/webhook' && method === 'POST') {
         response = await handlePaymentWebhook(request, env);
       }
-      // Admin Authentication
+      // Admin Authentication (Rate limited: 5 attempts per 15 minutes)
       else if (path === '/api/admin/login' && method === 'POST') {
+        const rl = await checkRateLimit(env, request, { action: 'admin_login', limit: 5, windowSeconds: 900 });
+        if (!rl.allowed) return createRateLimitResponse(rl.retryAfter, corsHeaders);
         response = await handleAdminLogin(request, env);
       }
       else if (path === '/api/admin/logout' && method === 'POST') {

@@ -52,12 +52,28 @@ export interface ComingSoonCategory {
   iconName?: string;
 }
 
+export type FulfillmentType = 'delivery' | 'pickup';
+
+export interface DeliveryAddress {
+  addressLine1: string;
+  addressLine2?: string;
+  locality: string;
+  city: string;
+  state: string;
+  pincode: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
+  instructions?: string;
+}
+
 export interface OrderCustomerInfo {
   fullName: string;
   phone: string;
   email: string;
-  pickupDate: string;
-  pickupTime: string;
+  fulfillmentType?: FulfillmentType;
+  pickupDate?: string;
+  pickupTime?: string;
+  deliveryAddress?: DeliveryAddress;
   specialInstructions?: string;
 }
 

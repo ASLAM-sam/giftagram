@@ -10,6 +10,8 @@ import {
   Calendar,
   Clock,
   AlertCircle,
+  Truck,
+  Store,
 } from 'lucide-react';
 import { adminOrderService, AdminOrderSummary } from '../../services/adminOrderService';
 import { AdminOrderDetailDrawer } from '../../components/admin/AdminOrderDetailDrawer';
@@ -300,7 +302,7 @@ export const AdminOrdersPage: React.FC = () => {
                 <tr className="border-b border-cream-200 bg-cream-50/70 text-[0.68rem] tracking-[0.15em] uppercase font-semibold text-espresso-600">
                   <th className="py-3.5 px-4 sm:px-6">Order Reference</th>
                   <th className="py-3.5 px-4">Customer</th>
-                  <th className="py-3.5 px-4">Scheduled Pickup</th>
+                  <th className="py-3.5 px-4">Fulfillment & Date</th>
                   <th className="py-3.5 px-4">Financials</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
@@ -309,6 +311,10 @@ export const AdminOrdersPage: React.FC = () => {
               <tbody className="divide-y divide-cream-200/70 text-xs sm:text-sm">
                 {filteredOrders.map((order) => {
                   const badge = getStatusBadge(order.status);
+                  const isDelivery = order.fulfillmentType === 'delivery';
+                  const scheduledDate = isDelivery ? (order.deliveryDate || order.pickupDate) : order.pickupDate;
+                  const scheduledTime = isDelivery ? (order.deliveryTime || order.pickupTime) : order.pickupTime;
+
                   return (
                     <tr
                       key={order.id}
@@ -344,22 +350,35 @@ export const AdminOrdersPage: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Scheduled Pickup */}
+                      {/* Fulfillment & Date */}
                       <td className="py-3.5 px-4 text-xs text-espresso-700">
-                        {order.pickupDate ? (
-                          <div>
-                            <span className="font-medium text-espresso-900 block flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-rose-500" />
-                              {order.pickupDate}
-                            </span>
-                            <span className="text-[0.7rem] text-espresso-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-espresso-400" />
-                              {order.pickupTime || 'Standard slot'}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-cream-400">—</span>
-                        )}
+                        <div className="space-y-1">
+                          <span
+                            className={`inline-flex items-center gap-1 text-[0.68rem] px-2 py-0.5 rounded-full font-medium ${
+                              isDelivery
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/70'
+                                : 'bg-cream-100 text-espresso-700 border border-cream-200'
+                            }`}
+                          >
+                            {isDelivery ? <Truck className="w-3 h-3 text-blue-500" /> : <Store className="w-3 h-3 text-espresso-500" />}
+                            <span>{isDelivery ? 'Doorstep Delivery' : 'Studio Pickup'}</span>
+                          </span>
+
+                          {scheduledDate ? (
+                            <div>
+                              <span className="font-medium text-espresso-900 block flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-rose-500" />
+                                {scheduledDate}
+                              </span>
+                              <span className="text-[0.7rem] text-espresso-500 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-espresso-400" />
+                                {scheduledTime || 'Standard slot'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-cream-400 block">—</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Financials & Balance */}

@@ -63,14 +63,14 @@ export async function handleAdminUploadProductImage(
     return jsonResponse(createdImage, 201);
   } catch (err: any) {
     console.error('[handleAdminUploadProductImage] Error:', err?.message || err);
-    const msg = err?.message || 'Failed to upload image to atelier.';
+    const msg = err?.message || '';
     if (msg.includes('not found')) {
-      return errorResponse('PRODUCT_NOT_FOUND', msg, 404);
+      return errorResponse('PRODUCT_NOT_FOUND', 'Product not found.', 404);
     }
     if (msg.includes('Unsupported file format') || msg.includes('too large')) {
       return errorResponse('VALIDATION_ERROR', msg, 400);
     }
-    return errorResponse('UPLOAD_FAILED', msg, 500);
+    return errorResponse('UPLOAD_FAILED', 'Failed to upload product image.', 500);
   }
 }
 
@@ -92,11 +92,11 @@ export async function handleAdminSetPrimaryImage(
     return jsonResponse({ success: true, message: 'Primary image updated.' }, 200);
   } catch (err: any) {
     console.error('[handleAdminSetPrimaryImage] Error:', err?.message || err);
-    const msg = err?.message || 'Failed to set primary image.';
+    const msg = err?.message || '';
     if (msg.includes('does not belong') || msg.includes('not found')) {
-      return errorResponse('IMAGE_NOT_FOUND', msg, 404);
+      return errorResponse('IMAGE_NOT_FOUND', 'Image not found for this product.', 404);
     }
-    return errorResponse('DATABASE_ERROR', msg, 500);
+    return errorResponse('DATABASE_ERROR', 'Failed to set primary image.', 500);
   }
 }
 
@@ -168,14 +168,14 @@ export async function handleAdminReplaceProductImage(
     return jsonResponse(updatedImage, 200);
   } catch (err: any) {
     console.error('[handleAdminReplaceProductImage] Error:', err?.message || err);
-    const msg = err?.message || 'Failed to replace image.';
+    const msg = err?.message || '';
     if (msg.includes('not found')) {
-      return errorResponse('IMAGE_NOT_FOUND', msg, 404);
+      return errorResponse('IMAGE_NOT_FOUND', 'Image not found for this product.', 404);
     }
     if (msg.includes('Unsupported file format') || msg.includes('too large')) {
       return errorResponse('VALIDATION_ERROR', msg, 400);
     }
-    return errorResponse('REPLACE_FAILED', msg, 500);
+    return errorResponse('REPLACE_FAILED', 'Failed to replace product image.', 500);
   }
 }
 
@@ -197,10 +197,10 @@ export async function handleAdminDeleteProductImage(
     return jsonResponse({ success: true, message: 'Image deleted successfully.' }, 200);
   } catch (err: any) {
     console.error('[handleAdminDeleteProductImage] Error:', err?.message || err);
-    const msg = err?.message || 'Failed to delete image.';
+    const msg = err?.message || '';
     if (msg.includes('not found')) {
-      return errorResponse('IMAGE_NOT_FOUND', msg, 404);
+      return errorResponse('IMAGE_NOT_FOUND', 'Image not found for this product.', 404);
     }
-    return errorResponse('DELETE_FAILED', msg, 500);
+    return errorResponse('DELETE_FAILED', 'Failed to delete product image.', 500);
   }
 }

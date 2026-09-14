@@ -4,6 +4,10 @@ import { generateId, generateOrderNumber } from '../utils/ids';
 export interface OrderCreationResult {
   id: string;
   orderNumber: string;
+  fulfillmentType?: 'pickup' | 'delivery';
+  deliveryAddress?: any;
+  pickupDate?: string;
+  pickupTime?: string;
   subtotal: number;
   depositAmount: number;
   depositAmountPaise: number;
@@ -111,14 +115,19 @@ export const orderService = {
       );
     }
 
-    // Order record
+    // Order record with delivery address snapshot
+    const fulfillmentType = input.fulfillmentType || (input.deliveryAddress ? 'delivery' : 'pickup');
+    const deliveryAddr = input.deliveryAddress;
+
     batchStatements.push(
       db
         .prepare(
           `INSERT INTO orders (
             id, order_number, customer_id, status, subtotal, deposit_amount, remaining_amount,
-            currency, pickup_date, pickup_time, customer_name, customer_phone, customer_email, notes, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            currency, pickup_date, pickup_time, customer_name, customer_phone, customer_email, notes,
+            fulfillment_type, address_line1, address_line2, locality, city, state, pincode, delivery_date, delivery_time,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           orderId,
@@ -129,12 +138,21 @@ export const orderService = {
           depositAmount,
           remainingAmount,
           'INR',
-          input.pickupDate,
-          input.pickupTime,
+          input.pickupDate || deliveryAddr?.deliveryDate || '',
+          input.pickupTime || deliveryAddr?.deliveryTime || '',
           input.customer.name,
           customerPhone,
           input.customer.email || null,
           input.specialInstructions || null,
+          fulfillmentType,
+          deliveryAddr?.addressLine1 || null,
+          deliveryAddr?.addressLine2 || null,
+          deliveryAddr?.locality || null,
+          deliveryAddr?.city || null,
+          deliveryAddr?.state || null,
+          deliveryAddr?.pincode || null,
+          deliveryAddr?.deliveryDate || null,
+          deliveryAddr?.deliveryTime || null,
           createdAt,
           createdAt
         )
@@ -211,6 +229,10 @@ export const orderService = {
     return {
       id: orderId,
       orderNumber,
+      fulfillmentType: input.fulfillmentType,
+      deliveryAddress: input.deliveryAddress,
+      pickupDate: input.pickupDate,
+      pickupTime: input.pickupTime,
       subtotal,
       depositAmount,
       depositAmountPaise,
@@ -256,6 +278,20 @@ export const orderService = {
       orderNumber: order.order_number,
       status: order.status,
       customerName: order.customer_name,
+      fulfillmentType: (order as any).fulfillment_type || 'pickup',
+      deliveryAddress: (order as any).address_line1
+        ? {
+            addressLine1: (order as any).address_line1,
+            addressLine2: (order as any).address_line2 || undefined,
+            locality: (order as any).locality || '',
+            city: (order as any).city || '',
+            state: (order as any).state || '',
+            pincode: (order as any).pincode || '',
+            deliveryDate: (order as any).delivery_date || order.pickup_date,
+            deliveryTime: (order as any).delivery_time || order.pickup_time,
+            instructions: order.notes || undefined,
+          }
+        : undefined,
       pickupDate: order.pickup_date,
       pickupTime: order.pickup_time,
       subtotal: order.subtotal,
@@ -308,6 +344,7 @@ export const orderService = {
       customerName: r.customer_name,
       customerPhone: r.customer_phone,
       customerEmail: r.customer_email || undefined,
+      fulfillmentType: r.fulfillment_type || 'pickup',
       status: r.status,
       subtotal: r.subtotal,
       depositAmount: r.deposit_amount,
@@ -315,6 +352,10 @@ export const orderService = {
       currency: r.currency || 'INR',
       pickupDate: r.pickup_date || undefined,
       pickupTime: r.pickup_time || undefined,
+      deliveryDate: r.delivery_date || undefined,
+      deliveryTime: r.delivery_time || undefined,
+      city: r.city || undefined,
+      pincode: r.pincode || undefined,
       notes: r.notes || undefined,
       itemsCount: r.items_count || 0,
       createdAt: r.created_at,
@@ -423,6 +464,20 @@ export const orderService = {
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
       customerEmail: order.customer_email || undefined,
+      fulfillmentType: (order as any).fulfillment_type || 'pickup',
+      deliveryAddress: (order as any).address_line1
+        ? {
+            addressLine1: (order as any).address_line1,
+            addressLine2: (order as any).address_line2 || undefined,
+            locality: (order as any).locality || '',
+            city: (order as any).city || '',
+            state: (order as any).state || '',
+            pincode: (order as any).pincode || '',
+            deliveryDate: (order as any).delivery_date || order.pickup_date,
+            deliveryTime: (order as any).delivery_time || order.pickup_time,
+            instructions: order.notes || undefined,
+          }
+        : undefined,
       status: order.status,
       subtotal: order.subtotal,
       depositAmount: order.deposit_amount,
@@ -430,6 +485,8 @@ export const orderService = {
       currency: order.currency || 'INR',
       pickupDate: order.pickup_date || undefined,
       pickupTime: order.pickup_time || undefined,
+      deliveryDate: (order as any).delivery_date || undefined,
+      deliveryTime: (order as any).delivery_time || undefined,
       notes: order.notes || undefined,
       createdAt: order.created_at,
       updatedAt: order.updated_at,

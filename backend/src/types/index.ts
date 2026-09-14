@@ -52,6 +52,19 @@ export interface CustomerRow {
   updated_at: string;
 }
 
+export type FulfillmentType = 'delivery' | 'pickup';
+
+export interface DeliveryAddress {
+  addressLine1: string;
+  addressLine2?: string;
+  locality: string;
+  city: string;
+  state: string;
+  pincode: string;
+  deliveryDate: string;
+  deliveryTime: string;
+}
+
 export interface OrderRow {
   id: string;
   order_number: string;
@@ -67,6 +80,15 @@ export interface OrderRow {
   customer_phone: string;
   customer_email: string | null;
   notes: string | null;
+  fulfillment_type?: FulfillmentType;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  locality?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  delivery_date?: string | null;
+  delivery_time?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -135,8 +157,10 @@ export interface CreateOrderInput {
     phone: string;
     email?: string;
   };
-  pickupDate: string;
-  pickupTime: string;
+  fulfillmentType?: FulfillmentType;
+  deliveryAddress?: DeliveryAddress;
+  pickupDate?: string;
+  pickupTime?: string;
   specialInstructions?: string;
   items: CreateOrderInputItem[];
 }

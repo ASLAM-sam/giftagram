@@ -18,6 +18,9 @@ import {
   History,
   Ban,
   Package,
+  Truck,
+  Store,
+  MapPin,
 } from 'lucide-react';
 import { adminOrderService, AdminOrderDetail } from '../../services/adminOrderService';
 import { useAdminAuth } from '../../context/AdminAuthContext';
@@ -393,7 +396,7 @@ export const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({
                     )}
                   </div>
 
-                  {/* Customer Contact & Pickup Details */}
+                  {/* Customer Contact & Fulfillment Details */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Customer Info Card */}
                     <div className="bg-white p-5 rounded-2xl border border-cream-300 shadow-soft space-y-3">
@@ -413,30 +416,91 @@ export const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({
                             <span className="truncate">{order.customerEmail}</span>
                           </p>
                         )}
+                        <div className="pt-2 border-t border-cream-100 flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1 text-[0.68rem] px-2 py-0.5 rounded-full font-medium ${
+                              order.fulfillmentType === 'delivery'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/70'
+                                : 'bg-cream-100 text-espresso-700 border border-cream-200'
+                            }`}
+                          >
+                            {order.fulfillmentType === 'delivery' ? (
+                              <Truck className="w-3 h-3 text-blue-500" />
+                            ) : (
+                              <Store className="w-3 h-3 text-espresso-500" />
+                            )}
+                            <span>{order.fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Studio Pickup'}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Scheduled Pickup Card */}
+                    {/* Fulfillment & Address Card */}
                     <div className="bg-white p-5 rounded-2xl border border-cream-300 shadow-soft space-y-3">
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-semibold text-espresso-700">
-                        <Clock className="w-3.5 h-3.5 text-rose-500" />
-                        <span>Scheduled Pickup</span>
-                      </div>
-                      <div className="space-y-1.5 text-xs">
-                        <p className="text-espresso-900 font-medium flex items-center gap-2">
-                          <Calendar className="w-3.5 h-3.5 text-rose-500" />
-                          <span>{order.pickupDate || 'Date to be scheduled'}</span>
-                        </p>
-                        <p className="text-espresso-600 flex items-center gap-2 font-mono">
-                          <Clock className="w-3.5 h-3.5 text-espresso-400" />
-                          <span>{order.pickupTime || 'Standard atelier hours (11:00 - 20:00)'}</span>
-                        </p>
-                        {order.notes && (
-                          <p className="text-[0.72rem] text-espresso-600 bg-cream-50 p-2 rounded-lg border border-cream-200 mt-2">
-                            <strong>Note:</strong> {order.notes}
-                          </p>
+                        {order.fulfillmentType === 'delivery' ? (
+                          <Truck className="w-3.5 h-3.5 text-rose-500" />
+                        ) : (
+                          <Clock className="w-3.5 h-3.5 text-rose-500" />
                         )}
+                        <span>
+                          {order.fulfillmentType === 'delivery' ? 'Doorstep Delivery Address' : 'Scheduled Pickup'}
+                        </span>
                       </div>
+
+                      {order.fulfillmentType === 'delivery' && order.deliveryAddress ? (
+                        <div className="space-y-2 text-xs">
+                          <div className="space-y-1">
+                            <p className="font-medium text-espresso-900 flex items-start gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                              <span>
+                                {order.deliveryAddress.addressLine1}
+                                {order.deliveryAddress.addressLine2 && `, ${order.deliveryAddress.addressLine2}`}
+                              </span>
+                            </p>
+                            <p className="text-espresso-600 pl-5">
+                              {order.deliveryAddress.locality}, {order.deliveryAddress.city},{' '}
+                              {order.deliveryAddress.state} —{' '}
+                              <strong className="text-espresso-900 font-mono font-semibold">
+                                {order.deliveryAddress.pincode}
+                              </strong>
+                            </p>
+                          </div>
+
+                          <div className="pt-2 border-t border-cream-100 grid grid-cols-2 gap-2 text-[0.72rem]">
+                            <div className="flex items-center gap-1.5 text-espresso-700">
+                              <Calendar className="w-3 h-3 text-rose-500 shrink-0" />
+                              <span>{order.deliveryAddress.deliveryDate || order.pickupDate || 'Scheduled'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-espresso-700">
+                              <Clock className="w-3 h-3 text-espresso-400 shrink-0" />
+                              <span>{order.deliveryAddress.deliveryTime || order.pickupTime || 'Standard window'}</span>
+                            </div>
+                          </div>
+
+                          {(order.deliveryAddress.instructions || order.notes) && (
+                            <p className="text-[0.7rem] text-espresso-600 bg-cream-50 p-2 rounded-lg border border-cream-200">
+                              <strong>Instructions:</strong> {order.deliveryAddress.instructions || order.notes}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 text-xs">
+                          <p className="text-espresso-900 font-medium flex items-center gap-2">
+                            <Calendar className="w-3.5 h-3.5 text-rose-500" />
+                            <span>{order.pickupDate || 'Date to be scheduled'}</span>
+                          </p>
+                          <p className="text-espresso-600 flex items-center gap-2 font-mono">
+                            <Clock className="w-3.5 h-3.5 text-espresso-400" />
+                            <span>{order.pickupTime || 'Standard atelier hours (11:00 - 20:00)'}</span>
+                          </p>
+                          {order.notes && (
+                            <p className="text-[0.72rem] text-espresso-600 bg-cream-50 p-2 rounded-lg border border-cream-200 mt-2">
+                              <strong>Note:</strong> {order.notes}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -18,7 +18,7 @@ export interface Env {
   CLOUDINARY_API_SECRET?: string;
 
   // Application Environment & Domain Configurations
-  ENVIRONMENT?: 'development' | 'staging' | 'production';
+  ENVIRONMENT?: 'development' | 'staging' | 'production' | 'test';
   CORS_ORIGINS?: string; // Comma-separated allowed origins
   FRONTEND_URL?: string;
 }

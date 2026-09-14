@@ -2,6 +2,7 @@ import { validateCreateOrderInput } from '../src/validators/orderValidator';
 import { createHmacSha256, timingSafeEqual } from '../src/utils/crypto';
 import { generateOrderNumber, generateId } from '../src/utils/ids';
 import { runAuthUnitTests } from './auth.unit.test';
+import { runSecurityHardeningTests } from './security_hardening.test';
 
 async function runUnitTests() {
   console.log('--- RUNNING GIFTAGRAM BACKEND UNIT TESTS ---');
@@ -104,9 +105,77 @@ async function runUnitTests() {
   });
   assert(vGoodOrder.valid && vGoodOrder.data !== undefined, 'Validator accepts properly configured order');
 
+  // 8. Delivery Validation: Reject delivery order without address
+  const vNoAddress = validateCreateOrderInput({
+    customer: { name: 'Alisha Sharma', phone: '8141376677' },
+    fulfillmentType: 'delivery',
+    items: [{ productId: 'cake-belgium', quantity: 1, cakeCustomization: { designRequirements: 'Piping', depositAcknowledged: true } }],
+  });
+  assert(!vNoAddress.valid && vNoAddress.errors.some(e => e.field === 'deliveryAddress'), 'Validator rejects delivery order without delivery address');
+
+  // 9. Delivery Validation: Reject delivery order with invalid PIN code
+  const vBadPin = validateCreateOrderInput({
+    customer: { name: 'Alisha Sharma', phone: '8141376677' },
+    fulfillmentType: 'delivery',
+    deliveryAddress: {
+      addressLine1: 'Villa 12, Palm Meadows',
+      locality: 'Banjara Hills',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      pincode: '50001', // 5 digits - invalid!
+      deliveryDate: '2026-09-18',
+      deliveryTime: '14:00',
+    },
+    items: [{ productId: 'cake-belgium', quantity: 1, cakeCustomization: { designRequirements: 'Piping', depositAcknowledged: true } }],
+  });
+  assert(!vBadPin.valid && vBadPin.errors.some(e => e.field === 'deliveryAddress.pincode'), 'Validator rejects invalid 5-digit PIN code');
+
+  // 10. Delivery Validation: Reject delivery order with missing address line 1
+  const vBadLine1 = validateCreateOrderInput({
+    customer: { name: 'Alisha Sharma', phone: '8141376677' },
+    fulfillmentType: 'delivery',
+    deliveryAddress: {
+      addressLine1: '  ',
+      locality: 'Banjara Hills',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      pincode: '500034',
+      deliveryDate: '2026-09-18',
+      deliveryTime: '14:00',
+    },
+    items: [{ productId: 'cake-belgium', quantity: 1, cakeCustomization: { designRequirements: 'Piping', depositAcknowledged: true } }],
+  });
+  assert(!vBadLine1.valid && vBadLine1.errors.some(e => e.field === 'deliveryAddress.addressLine1'), 'Validator rejects missing address line 1');
+
+  // 11. Delivery Validation: Accept complete valid delivery order
+  const vGoodDelivery = validateCreateOrderInput({
+    customer: { name: 'Alisha Sharma', phone: '8141376677', email: 'alisha@example.com' },
+    fulfillmentType: 'delivery',
+    deliveryAddress: {
+      addressLine1: 'Villa 42, Green Valley',
+      addressLine2: 'Road No. 12',
+      locality: 'Banjara Hills',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      pincode: '500034',
+      deliveryDate: '2026-09-18',
+      deliveryTime: '14:00',
+    },
+    specialInstructions: 'Ring bell twice',
+    items: [{ productId: 'cake-belgium', quantity: 1, cakeCustomization: { designRequirements: 'Piping', depositAcknowledged: true } }],
+  });
+  assert(
+    vGoodDelivery.valid &&
+      vGoodDelivery.data?.fulfillmentType === 'delivery' &&
+      vGoodDelivery.data?.deliveryAddress?.pincode === '500034',
+    'Validator accepts complete valid delivery order with 6-digit PIN'
+  );
+
   const authResults = await runAuthUnitTests();
   passed += authResults.passed;
   failed += authResults.failed;
+
+  await runSecurityHardeningTests();
 
   console.log(`\nOverall Unit Results: ${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

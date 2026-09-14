@@ -111,9 +111,9 @@ export async function handleAdminCreateProduct(request: Request, env: Env): Prom
   } catch (err: any) {
     console.error('[handleAdminCreateProduct] Error:', err?.message || err);
     if (err?.message?.includes('already exists')) {
-      return errorResponse('SLUG_CONFLICT', err.message, 409);
+      return errorResponse('SLUG_CONFLICT', 'A product with this slug already exists.', 409);
     }
-    return errorResponse('DATABASE_ERROR', err?.message || 'Failed to create product in database', 500);
+    return errorResponse('DATABASE_ERROR', 'Failed to create product in database.', 500);
   }
 }
 
@@ -200,9 +200,9 @@ export async function handleAdminUpdateProduct(request: Request, env: Env, id: s
   } catch (err: any) {
     console.error('[handleAdminUpdateProduct] Error:', err?.message || err);
     if (err?.message?.includes('already exists')) {
-      return errorResponse('SLUG_CONFLICT', err.message, 409);
+      return errorResponse('SLUG_CONFLICT', 'A product with this slug already exists.', 409);
     }
-    return errorResponse('DATABASE_ERROR', err?.message || 'Failed to update product in database', 500);
+    return errorResponse('DATABASE_ERROR', 'Failed to update product in database.', 500);
   }
 }
 

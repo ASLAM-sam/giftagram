@@ -291,11 +291,12 @@ export const HomePage: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredCakes.map((cake) => (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+          {featuredCakes.map((cake, idx) => (
             <ProductCard
               key={cake.id}
               product={cake}
+              priority={idx < 4}
               onCustomizeClick={(p) => setCustomizingCake(p)}
             />
           ))}
@@ -323,7 +324,7 @@ export const HomePage: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
           {featuredBouquets.map((bouquet) => (
             <ProductCard key={bouquet.id} product={bouquet} />
           ))}

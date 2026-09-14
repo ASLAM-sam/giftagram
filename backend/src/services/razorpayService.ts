@@ -18,6 +18,23 @@ export interface VerifyPaymentInput {
   razorpaySignature: string;
 }
 
+function isLocalEnvironment(env: Env): boolean {
+  const envVal = String(env.ENVIRONMENT || '').toLowerCase();
+  if (envVal === 'production' || envVal === 'staging') {
+    return false;
+  }
+  const nodeEnv =
+    typeof (globalThis as any).process !== 'undefined'
+      ? (globalThis as any).process?.env?.NODE_ENV
+      : undefined;
+
+  return (
+    envVal === 'development' ||
+    envVal === 'test' ||
+    nodeEnv === 'test'
+  );
+}
+
 export const razorpayService = {
   /**
    * Creates a Razorpay payment order for the 50% deposit amount
@@ -25,6 +42,7 @@ export const razorpayService = {
    */
   async createPaymentOrder(env: Env, orderIdOrNumber: string): Promise<CreatePaymentOrderResponse> {
     const db = env.DB;
+    const isLocal = isLocalEnvironment(env);
 
     // 1. Load order from D1
     const order = await db
@@ -62,12 +80,19 @@ export const razorpayService = {
     let razorpayOrderId: string;
 
     // 3. Call Razorpay Orders API if real server secrets are present
-    const hasRealSecrets =
+    const hasRealSecrets = Boolean(
       env.RAZORPAY_KEY_ID &&
       env.RAZORPAY_KEY_SECRET &&
       !env.RAZORPAY_KEY_ID.includes('YOUR_') &&
       !env.RAZORPAY_KEY_SECRET.includes('YOUR_') &&
-      env.RAZORPAY_KEY_ID.startsWith('rzp_');
+      !env.RAZORPAY_KEY_ID.includes('placeholder') &&
+      !env.RAZORPAY_KEY_SECRET.includes('placeholder') &&
+      env.RAZORPAY_KEY_ID.startsWith('rzp_')
+    );
+
+    if (!isLocal && !hasRealSecrets) {
+      throw new Error('Payment gateway configuration error: Razorpay live credentials are not configured in production.');
+    }
 
     if (hasRealSecrets) {
       try {
@@ -98,7 +123,11 @@ export const razorpayService = {
         const rzpData = (await response.json()) as any;
         razorpayOrderId = rzpData.id;
       } catch (err: any) {
-        console.error('[RazorpayService] Remote API failure, falling back to simulated order:', err);
+        console.error('[RazorpayService] Remote API failure:', err?.message || err);
+        if (!isLocal) {
+          throw new Error(`Failed to create order with payment gateway: ${err?.message || 'Remote gateway error'}`);
+        }
+        // Local development simulation fallback only
         razorpayOrderId = `order_sim_${Math.random().toString(36).substring(2, 12)}`;
       }
     } else {
@@ -145,6 +174,7 @@ export const razorpayService = {
    */
   async verifyPayment(env: Env, input: VerifyPaymentInput): Promise<{ verified: boolean; orderNumber: string }> {
     const db = env.DB;
+    const isLocal = isLocalEnvironment(env);
 
     const order = await db
       .prepare('SELECT * FROM orders WHERE id = ? OR order_number = ? LIMIT 1')
@@ -163,20 +193,32 @@ export const razorpayService = {
     const payload = `${input.razorpayOrderId}|${input.razorpayPaymentId}`;
     let isSignatureValid = false;
 
-    const hasRealSecret =
+    const hasRealSecret = Boolean(
       env.RAZORPAY_KEY_SECRET &&
-      !env.RAZORPAY_KEY_SECRET.includes('YOUR_');
+      !env.RAZORPAY_KEY_SECRET.includes('YOUR_') &&
+      !env.RAZORPAY_KEY_SECRET.includes('placeholder')
+    );
 
-    if (hasRealSecret) {
+    if (!isLocal) {
+      // PRODUCTION: Strictly require valid HMAC signature with configured secret
+      if (!hasRealSecret) {
+        throw new Error('Payment gateway configuration error: Razorpay secret is not configured in production.');
+      }
       const expectedSignature = await createHmacSha256(env.RAZORPAY_KEY_SECRET, payload);
       isSignatureValid = timingSafeEqual(expectedSignature, input.razorpaySignature);
     } else {
-      // In simulated TEST MODE without real keys: verify non-empty parameters and reject explicit invalid test signatures
-      isSignatureValid =
-        Boolean(input.razorpayOrderId) &&
-        Boolean(input.razorpayPaymentId) &&
-        Boolean(input.razorpaySignature) &&
-        input.razorpaySignature !== 'invalid_signature_test';
+      // LOCAL DEV / TEST:
+      if (hasRealSecret) {
+        const expectedSignature = await createHmacSha256(env.RAZORPAY_KEY_SECRET, payload);
+        isSignatureValid = timingSafeEqual(expectedSignature, input.razorpaySignature);
+      } else {
+        // Isolated test simulation for local development only
+        isSignatureValid =
+          Boolean(input.razorpayOrderId) &&
+          Boolean(input.razorpayPaymentId) &&
+          Boolean(input.razorpaySignature) &&
+          input.razorpaySignature !== 'invalid_signature_test';
+      }
     }
 
     if (!isSignatureValid) {
@@ -230,11 +272,34 @@ export const razorpayService = {
    */
   async handleWebhook(env: Env, signature: string | null, rawBody: string): Promise<{ received: boolean }> {
     const db = env.DB;
+    const isLocal = isLocalEnvironment(env);
 
-    if (env.RAZORPAY_WEBHOOK_SECRET && signature) {
+    if (!isLocal) {
+      // PRODUCTION: Mandatory webhook signature verification
+      if (
+        !env.RAZORPAY_WEBHOOK_SECRET ||
+        env.RAZORPAY_WEBHOOK_SECRET.includes('YOUR_') ||
+        env.RAZORPAY_WEBHOOK_SECRET.includes('placeholder')
+      ) {
+        throw new Error('Razorpay webhook processing rejected: webhook secret is not configured in production.');
+      }
+      if (!signature || !signature.trim()) {
+        throw new Error('Missing mandatory Razorpay webhook signature header (x-razorpay-signature).');
+      }
       const expectedSig = await createHmacSha256(env.RAZORPAY_WEBHOOK_SECRET, rawBody);
-      if (!timingSafeEqual(expectedSig, signature)) {
+      if (!timingSafeEqual(expectedSig, signature.trim())) {
         throw new Error('Invalid Razorpay webhook signature.');
+      }
+    } else {
+      // LOCAL DEV / TEST:
+      if (env.RAZORPAY_WEBHOOK_SECRET) {
+        if (!signature || !signature.trim()) {
+          throw new Error('Missing Razorpay webhook signature header.');
+        }
+        const expectedSig = await createHmacSha256(env.RAZORPAY_WEBHOOK_SECRET, rawBody);
+        if (!timingSafeEqual(expectedSig, signature.trim())) {
+          throw new Error('Invalid Razorpay webhook signature.');
+        }
       }
     }
 
@@ -265,6 +330,13 @@ export const razorpayService = {
     if (paymentRow) {
       const now = new Date().toISOString();
       if (event === 'payment.captured' || event === 'order.paid') {
+        const sanitizedEventPayload = JSON.stringify({
+          event,
+          providerOrderId: rzpOrderId,
+          providerPaymentId: rzpPaymentId,
+          recordedAt: now,
+        });
+
         await db.batch([
           db
             .prepare(
@@ -278,7 +350,7 @@ export const razorpayService = {
             .prepare(
               'INSERT INTO order_events (id, order_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?, ?)'
             )
-            .bind(generateId('evt'), paymentRow.order_id, `webhook_${event}`, rawBody, now),
+            .bind(generateId('evt'), paymentRow.order_id, `webhook_${event}`, sanitizedEventPayload, now),
         ]);
       }
     }

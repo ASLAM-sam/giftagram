@@ -33,8 +33,19 @@ export interface OrderLookupResult {
   orderNumber: string;
   status: 'payment_pending' | 'deposit_paid' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
   customerName: string;
-  pickupDate: string;
-  pickupTime: string;
+  fulfillmentType?: 'delivery' | 'pickup';
+  deliveryAddress?: {
+    addressLine1: string;
+    addressLine2?: string;
+    locality: string;
+    city: string;
+    state: string;
+    pincode: string;
+    deliveryDate?: string;
+    deliveryTime?: string;
+  };
+  pickupDate?: string;
+  pickupTime?: string;
   subtotal: number;
   depositAmount: number;
   remainingAmount: number;
@@ -66,8 +77,10 @@ export const orderService = {
             phone: payload.customer.phone,
             email: payload.customer.email,
           },
+          fulfillmentType: payload.customer.fulfillmentType || 'delivery',
           pickupDate: payload.customer.pickupDate,
           pickupTime: payload.customer.pickupTime,
+          deliveryAddress: payload.customer.deliveryAddress,
           specialInstructions: payload.customer.specialInstructions,
           items: payload.items.map((item) => ({
             productId: item.productId,
@@ -183,8 +196,10 @@ export const orderService = {
           orderNumber: local.orderId,
           status: local.paymentStatus === 'deposit_paid' ? 'deposit_paid' : 'payment_pending',
           customerName: local.customer.fullName,
-          pickupDate: local.customer.pickupDate,
-          pickupTime: local.customer.pickupTime,
+          fulfillmentType: local.customer.fulfillmentType || 'delivery',
+          deliveryAddress: local.customer.deliveryAddress,
+          pickupDate: local.customer.pickupDate || local.customer.deliveryAddress?.deliveryDate || '',
+          pickupTime: local.customer.pickupTime || local.customer.deliveryAddress?.deliveryTime || '',
           subtotal: local.subtotal,
           depositAmount: local.depositRequired,
           remainingAmount: local.balanceDueOnPickup,

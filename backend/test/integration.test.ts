@@ -197,6 +197,104 @@ async function runIntegrationTests() {
     'CORS header Access-Control-Allow-Origin is present'
   );
 
+  // 14. Cloudflare Edge Cache-Control Header on Public Products API
+  const cacheControlHeader = productsRes.headers.get('cache-control');
+  assert(
+    cacheControlHeader !== null && cacheControlHeader.includes('public') && cacheControlHeader.includes('s-maxage=300'),
+    `GET /api/products returns Cloudflare-native Cache-Control header (${cacheControlHeader})`
+  );
+
+  // 15. Delivery Order Creation with Immutable D1 Address Persistence
+  const deliveryOrderRes = await fetch(`${API_BASE}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customer: {
+        name: 'Sameer Khan',
+        phone: '9876543210',
+        email: 'sameer@example.com',
+      },
+      fulfillmentType: 'delivery',
+      deliveryAddress: {
+        addressLine1: 'Villa 14, Whispering Palms',
+        addressLine2: 'Near Botanical Garden Road',
+        locality: 'Kondapur',
+        city: 'Hyderabad',
+        state: 'Telangana',
+        pincode: '500084',
+        deliveryDate: '2026-09-21',
+        deliveryTime: '16:00',
+        instructions: 'Please call before ringing gate bell',
+      },
+      items: [
+        {
+          productId: 'cake-royal-chocolate',
+          quantity: 1,
+          cakeCustomization: {
+            fullName: 'Sameer Khan',
+            phone: '9876543210',
+            pickupDate: '2026-09-21',
+            pickupTime: '16:00',
+            designRequirements: 'Chocolate ganache with golden leaf accents',
+            lettering: 'Happy Anniversary',
+            depositAcknowledged: true,
+          },
+        },
+      ],
+    }),
+  });
+  const deliveryOrderJson = await deliveryOrderRes.json() as any;
+  assert(deliveryOrderRes.status === 201, 'POST /api/orders with delivery address returns HTTP 201 Created');
+  assert(deliveryOrderJson.data?.fulfillmentType === 'delivery', 'Created order records fulfillmentType: delivery');
+  assert(deliveryOrderJson.data?.deliveryAddress?.addressLine1 === 'Villa 14, Whispering Palms', 'D1 order snapshot persists addressLine1');
+  assert(deliveryOrderJson.data?.deliveryAddress?.pincode === '500084', 'D1 order snapshot persists pincode 500084');
+
+  // Lookup delivery order
+  const deliveryLookupRes = await fetch(`${API_BASE}/api/orders/lookup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderNumber: deliveryOrderJson.data.orderNumber,
+      phone: '9876543210',
+    }),
+  });
+  const deliveryLookupJson = await deliveryLookupRes.json() as any;
+  assert(deliveryLookupRes.status === 200, 'Lookup of delivery order returns HTTP 200');
+  assert(deliveryLookupJson.data?.fulfillmentType === 'delivery', 'Lookup exposes fulfillmentType: delivery');
+  assert(deliveryLookupJson.data?.deliveryAddress?.city === 'Hyderabad', 'Lookup exposes delivery city: Hyderabad');
+
+  // 16. Backend Rejection of Invalid Address (Invalid PIN code)
+  const invalidAddressRes = await fetch(`${API_BASE}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customer: {
+        name: 'Incomplete Address Test',
+        phone: '9876543210',
+      },
+      fulfillmentType: 'delivery',
+      deliveryAddress: {
+        addressLine1: 'Some Place',
+        locality: 'Gachibowli',
+        city: 'Hyderabad',
+        state: 'Telangana',
+        pincode: '123', // Invalid 3 digits!
+      },
+      items: [
+        {
+          productId: 'cake-royal-chocolate',
+          quantity: 1,
+          cakeCustomization: {
+            fullName: 'Incomplete Test',
+            phone: '9876543210',
+            depositAcknowledged: true,
+          },
+        },
+      ],
+    }),
+  });
+  assert(invalidAddressRes.status === 400, 'Backend rejects invalid PIN code with HTTP 400');
+
   const authResults = await runAdminAuthIntegrationTests();
   passed += authResults.passed;
   failed += authResults.failed;
