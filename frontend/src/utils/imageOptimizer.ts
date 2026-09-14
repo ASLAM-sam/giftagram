@@ -14,12 +14,14 @@ export interface ImageTransformOptions {
   format?: 'auto' | 'webp' | 'avif' | 'jpg';
 }
 
+export const PLACEHOLDER_PRODUCT_IMAGE = '/images/placeholder-product.svg';
+
 /**
  * Injects Cloudinary transformations into an asset URL.
  * Falls back gracefully to the original URL if not hosted on Cloudinary.
  */
 export function getOptimizedImageUrl(src: string, options: ImageTransformOptions = {}): string {
-  if (!src) return '/images/cakes/chocolate-belgium.jpg';
+  if (!src) return PLACEHOLDER_PRODUCT_IMAGE;
 
   // If not hosted on Cloudinary (e.g. local static path /images/cakes/...), pass through directly
   if (!src.includes('res.cloudinary.com') || !src.includes('/image/upload/')) {

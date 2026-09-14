@@ -79,6 +79,7 @@ export const App: React.FC = () => {
                         {/* Core Store Routes */}
                         <Route path="/" element={<HomePage />} />
                         <Route path="/shop" element={<ShopPage />} />
+                        <Route path="/category/:category" element={<ShopPage />} />
                         <Route path="/cakes" element={<CakesPage />} />
                         <Route path="/bouquets" element={<BouquetsPage />} />
                         
@@ -87,6 +88,7 @@ export const App: React.FC = () => {
                         <Route path="/bouquets/:slug" element={<ProductDetailPage />} />
                         <Route path="/product/:slug" element={<ProductDetailPage />} />
                         <Route path="/products/:slug" element={<ProductDetailPage />} />
+                        <Route path="/category/:category/:slug" element={<ProductDetailPage />} />
 
                         {/* Cart & Checkout Routes */}
                         <Route path="/cart" element={<CartPage />} />
@@ -103,6 +105,9 @@ export const App: React.FC = () => {
                         <Route path="/refund-policy" element={<RefundPolicyPage />} />
                         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                         <Route path="/terms" element={<TermsPage />} />
+                        
+                        {/* Generic category product slug for any admin-created categories */}
+                        <Route path="/:category/:slug" element={<ProductDetailPage />} />
 
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" replace />} />

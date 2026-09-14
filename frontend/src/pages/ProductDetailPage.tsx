@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getProductBySlug as getLocalProduct, ALL_PRODUCTS } from '../data/products';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { ProductGallery } from '../components/product/ProductGallery';
 import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModal';
-import { ProductCard } from '../components/product/ProductCard';
+import { ProductGrid } from '../components/product/ProductGrid';
 import { ProductDetailsSkeleton } from '../components/common/ProductDetailsSkeleton';
 import { productService } from '../services/productService';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -11,7 +10,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useUI } from '../context/UIContext';
 import { Button } from '../components/common/Button';
-import { Product, ProductCategory } from '../types';
+import { Product } from '../types';
 import {
   Heart,
   ShieldCheck,
@@ -26,11 +25,23 @@ import {
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { category: paramCategory, slug } = useParams<{ category?: string; slug: string }>();
   const navigate = useNavigate();
-  const initialLocal = getLocalProduct(slug || '');
-  const [product, setProduct] = useState<Product | null>(initialLocal || null);
-  const [isLoading, setIsLoading] = useState(!initialLocal);
+  const location = useLocation();
+
+  // Optimistic initial product from route state (passed by ProductCard)
+  // ONLY use if it matches current slug and has valid canonical images
+  const stateProduct = location.state?.product as Product | undefined;
+  const isStateValid = Boolean(
+    stateProduct &&
+      stateProduct.slug === slug &&
+      Array.isArray(stateProduct.images) &&
+      stateProduct.images.length > 0
+  );
+
+  const [product, setProduct] = useState<Product | null>(isStateValid ? (stateProduct as Product) : null);
+  const [isLoading, setIsLoading] = useState(!isStateValid);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -44,11 +55,20 @@ export const ProductDetailPage: React.FC = () => {
   useEffect(() => {
     let mounted = true;
     if (slug) {
-      // Determine category or search
-      const category: ProductCategory = window.location.pathname.includes('/bouquets/') ? 'bouquets' : 'cakes';
-      productService.getProductBySlug(category, slug).then((res) => {
+      const effectiveCategory: string =
+        paramCategory ||
+        stateProduct?.category ||
+        (window.location.pathname.includes('/bouquets/') ? 'bouquets' : 'cakes');
+
+      productService.getProductBySlug(effectiveCategory, slug).then((res) => {
         if (mounted && res) {
           setProduct(res);
+          // Fetch related creations from same category
+          productService.getProducts(res.category).then((allInCat) => {
+            if (mounted) {
+              setRelatedProducts(allInCat.filter((p) => p.id !== res.id).slice(0, 4));
+            }
+          });
         }
         if (mounted) setIsLoading(false);
       });
@@ -56,7 +76,7 @@ export const ProductDetailPage: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [slug]);
+  }, [paramCategory, slug, stateProduct?.category]);
 
   const [quantity, setQuantity] = useState(1);
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
@@ -72,7 +92,7 @@ export const ProductDetailPage: React.FC = () => {
           Creation Not Found
         </h2>
         <p className="text-sm text-espresso-600 mb-6">
-          The requested cake or bouquet does not exist in our studio menu.
+          The requested creation does not exist in our studio menu.
         </p>
         <Link to="/shop">
           <Button variant="primary" size="md">
@@ -85,9 +105,6 @@ export const ProductDetailPage: React.FC = () => {
 
   const isWishlisted = isInWishlist(product.id);
   const depositAmount = Math.round(product.price * 0.5);
-  const related = ALL_PRODUCTS.filter(
-    (p) => p.category === product.category && p.id !== product.id
-  ).slice(0, 4);
 
   const handleAddToCart = () => {
     addToCart(product, quantity);
@@ -108,12 +125,12 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-12 sm:space-y-16">
       {/* Back breadcrumb */}
       <div>
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-xs text-espresso-600 hover:text-rose-600 transition-colors font-medium"
+          className="inline-flex items-center gap-1.5 text-xs text-espresso-600 hover:text-rose-600 transition-colors font-medium cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to collection</span>
@@ -121,7 +138,7 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* Main Grid: Left Gallery, Right Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
         {/* Left: Product Image Gallery */}
         <div className="lg:col-span-7">
           <ProductGallery images={product.images} productName={product.name} />
@@ -133,19 +150,23 @@ export const ProductDetailPage: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs uppercase tracking-widest text-rose-600 font-semibold bg-blush-100 px-3 py-1 rounded-full">
-                {product.category === 'cakes' ? 'Bespoke Cake' : 'Floral Arrangement'}
+                {product.category === 'cakes'
+                  ? 'Bespoke Cake'
+                  : product.category === 'bouquets'
+                  ? 'Floral Arrangement'
+                  : product.category}
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleShare}
-                  className="p-2 rounded-full border border-cream-300 text-espresso-600 hover:text-rose-600 hover:bg-cream-100 transition-colors"
+                  className="p-2 rounded-full border border-cream-300 text-espresso-600 hover:text-rose-600 hover:bg-cream-100 transition-colors cursor-pointer"
                   aria-label="Share product"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => toggleWishlist(product.id)}
-                  className={`p-2 rounded-full border border-cream-300 transition-colors ${
+                  className={`p-2 rounded-full border border-cream-300 transition-colors cursor-pointer ${
                     isWishlisted ? 'bg-rose-500 text-white border-rose-500' : 'text-espresso-600 hover:text-rose-600 hover:bg-cream-100'
                   }`}
                   aria-label="Save to wishlist"
@@ -155,7 +176,7 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <h1 className="font-serif text-3xl sm:text-4xl text-espresso-900 font-medium leading-tight">
+            <h1 className="font-serif text-2xl sm:text-4xl text-espresso-900 font-medium leading-tight">
               {product.name}
             </h1>
 
@@ -171,16 +192,18 @@ export const ProductDetailPage: React.FC = () => {
                   {product.stemCount} Red Roses
                 </span>
               )}
-              <span className="text-xs text-espresso-600">
-                • {product.leadTimeHours}h notice required
-              </span>
+              {product.leadTimeHours && (
+                <span className="text-xs text-espresso-600">
+                  • {product.leadTimeHours}h notice required
+                </span>
+              )}
             </div>
           </div>
 
           {/* Pricing & Deposit Breakdown */}
           <div className="p-4 rounded-luxury bg-cream-50/80 border border-cream-200 space-y-1">
             <div className="flex items-baseline gap-2">
-              <span className="font-serif text-3xl font-semibold text-espresso-900">
+              <span className="font-serif text-2xl sm:text-3xl font-semibold text-espresso-900">
                 ₹{product.price}
               </span>
               <span className="text-xs text-espresso-600">Inclusive of handcrafted styling</span>
@@ -205,7 +228,7 @@ export const ProductDetailPage: React.FC = () => {
           </div>
 
           {/* Bouquet Specific Disclaimers */}
-          {product.category === 'bouquets' && product.disclaimers && (
+          {product.category === 'bouquets' && product.disclaimers && product.disclaimers.length > 0 && (
             <div className="p-4 rounded-luxury bg-champagne-100/60 border border-champagne-200/80 space-y-2 text-xs text-espresso-800">
               <p className="font-semibold flex items-center gap-1.5 text-rose-600">
                 <AlertCircle className="w-3.5 h-3.5" />
@@ -234,7 +257,7 @@ export const ProductDetailPage: React.FC = () => {
                 </Button>
                 <button
                   onClick={handleAddToCart}
-                  className="w-full text-center text-xs text-espresso-700 hover:text-rose-600 underline underline-offset-4 py-1 font-medium"
+                  className="w-full text-center text-xs text-espresso-700 hover:text-rose-600 underline underline-offset-4 py-1 font-medium cursor-pointer"
                 >
                   Or quick-add standard cake without custom lettering
                 </button>
@@ -245,7 +268,7 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="flex items-center border border-cream-300 rounded-full bg-white h-12 px-2">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-full flex items-center justify-center text-espresso-700 hover:text-rose-600"
+                    className="w-8 h-full flex items-center justify-center text-espresso-700 hover:text-rose-600 cursor-pointer"
                     aria-label="Decrease quantity"
                   >
                     <Minus className="w-3.5 h-3.5" />
@@ -255,7 +278,7 @@ export const ProductDetailPage: React.FC = () => {
                   </span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-8 h-full flex items-center justify-center text-espresso-700 hover:text-rose-600"
+                    className="w-8 h-full flex items-center justify-center text-espresso-700 hover:text-rose-600 cursor-pointer"
                     aria-label="Increase quantity"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -283,15 +306,15 @@ export const ProductDetailPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span>Studio pickup with ribbon box</span>
+              <span>Studio pickup & doorstep delivery</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Related Products */}
-      {related.length > 0 && (
-        <div className="pt-12 border-t border-cream-200 space-y-8">
+      {relatedProducts.length > 0 && (
+        <div className="pt-10 border-t border-cream-200 space-y-6">
           <div className="text-center">
             <span className="font-script text-3xl text-rose-500 block">
               You may also adore
@@ -300,11 +323,7 @@ export const ProductDetailPage: React.FC = () => {
               Complementary Creations
             </h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
-            {related.map((item) => (
-              <ProductCard key={item.id} product={item} />
-            ))}
-          </div>
+          <ProductGrid products={relatedProducts} />
         </div>
       )}
 

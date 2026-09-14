@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { ALL_PRODUCTS } from '../data/products';
-import { ProductCard } from '../components/product/ProductCard';
+import { ProductGrid } from '../components/product/ProductGrid';
 import { CakeCustomizationModal } from '../components/cake/CakeCustomizationModal';
+import { productService } from '../services/productService';
 import { Product } from '../types';
 import { Button } from '../components/common/Button';
 import { Heart, ArrowRight } from 'lucide-react';
@@ -13,9 +14,22 @@ export const WishlistPage: React.FC = () => {
   useDocumentTitle('Your Wishlist | Giftagram', 'View your saved artisan cakes and luxury bouquets.');
 
   const { wishlist } = useWishlist();
+  const [allProducts, setAllProducts] = useState<Product[]>(ALL_PRODUCTS);
   const [customizingCake, setCustomizingCake] = useState<Product | null>(null);
 
-  const favoritedProducts = ALL_PRODUCTS.filter((p) => wishlist.includes(p.id));
+  useEffect(() => {
+    let mounted = true;
+    productService.getProducts().then((data) => {
+      if (mounted && data.length > 0) {
+        setAllProducts(data);
+      }
+    }).catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const favoritedProducts = allProducts.filter((p) => wishlist.includes(p.id));
 
   if (favoritedProducts.length === 0) {
     return (
@@ -27,7 +41,7 @@ export const WishlistPage: React.FC = () => {
           Your wishlist is empty.
         </h2>
         <p className="text-xs sm:text-sm text-espresso-600 max-w-sm mx-auto">
-          Save your favourite cakes and bouquets by clicking the heart icon while browsing.
+          Save your favourite cakes and creations by clicking the heart icon while browsing.
         </p>
         <div className="pt-2">
           <Link to="/shop">
@@ -41,7 +55,7 @@ export const WishlistPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-10">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-6 sm:space-y-8">
       <div className="text-center max-w-2xl mx-auto space-y-2">
         <span className="font-script text-3xl text-rose-500 block">
           Saved with love
@@ -54,16 +68,10 @@ export const WishlistPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
-        {favoritedProducts.map((product, idx) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            priority={idx < 4}
-            onCustomizeClick={(p) => setCustomizingCake(p)}
-          />
-        ))}
-      </div>
+      <ProductGrid
+        products={favoritedProducts}
+        onCustomizeClick={(p) => setCustomizingCake(p)}
+      />
 
       {customizingCake && (
         <CakeCustomizationModal

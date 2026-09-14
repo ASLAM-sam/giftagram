@@ -10,7 +10,7 @@ import { ENV } from '../config/env';
  * Provides reliable fallback to seeded catalog during offline development or API initialization.
  */
 
-const LOCAL_PRODUCTS: Record<ProductCategory, Product[]> = {
+const LOCAL_PRODUCTS: Record<string, Product[]> = {
   cakes: CAKE_PRODUCTS,
   bouquets: BOUQUET_PRODUCTS,
 };
@@ -19,10 +19,10 @@ export const productService = {
   /**
    * Fetches active products, optionally filtered by category
    */
-  async getProducts(category?: ProductCategory): Promise<Product[]> {
+  async getProducts(category?: ProductCategory | string): Promise<Product[]> {
     try {
       const url = new URL(`${ENV.API_URL}/api/products`);
-      if (category) {
+      if (category && category !== 'all') {
         url.searchParams.set('category', category);
       }
 
@@ -56,7 +56,7 @@ export const productService = {
       return json;
     } catch (err) {
       console.warn('[ProductService] Backend API not reachable or returned error. Using catalog fallback:', err);
-      if (category) {
+      if (category && category !== 'all') {
         return LOCAL_PRODUCTS[category] || [];
       }
       return [...CAKE_PRODUCTS, ...BOUQUET_PRODUCTS];
@@ -66,7 +66,7 @@ export const productService = {
   /**
    * Fetches a single product by category and slug
    */
-  async getProductBySlug(category: ProductCategory, slug: string): Promise<Product | null> {
+  async getProductBySlug(category: ProductCategory | string, slug: string): Promise<Product | null> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -98,6 +98,24 @@ export const productService = {
     // Local fallback
     const list = LOCAL_PRODUCTS[category] || [];
     return list.find((p) => p.slug === slug) || null;
+  },
+
+  /**
+   * Fetches active & coming soon categories from backend
+   */
+  async getCategories(): Promise<{ active: string[]; comingSoon: string[] }> {
+    try {
+      const response = await fetch(`${ENV.API_URL}/api/categories`);
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && json.data) {
+          return json.data;
+        }
+      }
+    } catch (err) {
+      console.warn('[ProductService] Could not fetch categories from API:', err);
+    }
+    return { active: ['cakes', 'bouquets'], comingSoon: [] };
   },
 
   /**

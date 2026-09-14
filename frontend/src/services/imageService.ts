@@ -12,9 +12,10 @@ import {
   getResponsiveSrcSet,
   CARD_IMAGE_SIZES,
   ImageTransformOptions,
+  PLACEHOLDER_PRODUCT_IMAGE,
 } from '../utils/imageOptimizer';
 
-export { getOptimizedImageUrl, getResponsiveSrcSet, CARD_IMAGE_SIZES };
+export { getOptimizedImageUrl, getResponsiveSrcSet, CARD_IMAGE_SIZES, PLACEHOLDER_PRODUCT_IMAGE };
 export type { ImageTransformOptions };
 
 export const imageService = {
@@ -22,7 +23,7 @@ export const imageService = {
    * Resolves image URL with optional Cloudinary optimizations (f_auto, q_auto, width, height).
    */
   resolveImageUrl(path: string, options?: ImageTransformOptions): string {
-    if (!path) return '/images/cakes/chocolate-belgium.jpg';
+    if (!path) return PLACEHOLDER_PRODUCT_IMAGE;
     if (options) {
       return getOptimizedImageUrl(path, options);
     }

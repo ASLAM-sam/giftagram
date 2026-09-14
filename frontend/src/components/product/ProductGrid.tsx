@@ -28,7 +28,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <div
-      className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 lg:gap-6 ${className}`}
+      className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-5 lg:gap-6 ${className}`}
     >
       {products.map((product, idx) => (
         <ProductCard

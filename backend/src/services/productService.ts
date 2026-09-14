@@ -40,17 +40,17 @@ const STATIC_IMAGE_MAP: Record<string, string[]> = {
 
 function resolveProductImages(slug: string, dbImages: string[]): string[] {
   // 1. If any database image has a Cloudinary URL (starts with http), prioritize it
-  const cloudinaryUrls = dbImages.filter(url => url && url.startsWith('http'));
+  const cloudinaryUrls = dbImages.filter((url) => url && url.startsWith('http'));
   if (cloudinaryUrls.length > 0) {
-    return cloudinaryUrls;
+    return cloudinaryUrls.slice(0, 5);
   }
 
   // 2. Seamless fallback to local static map for the 15 current products
   if (STATIC_IMAGE_MAP[slug] && STATIC_IMAGE_MAP[slug].length > 0) {
-    return STATIC_IMAGE_MAP[slug];
+    return STATIC_IMAGE_MAP[slug].slice(0, 5);
   }
 
-  return dbImages.length > 0 ? dbImages : [`/images/cakes/royal-chocolate.jpg`];
+  return (dbImages.length > 0 ? dbImages : [`/images/cakes/royal-chocolate.jpg`]).slice(0, 5);
 }
 
 export const productService = {
@@ -86,7 +86,7 @@ export const productService = {
 
     // Fetch images for these products
     const imagesRes = await db
-      .prepare('SELECT * FROM product_images ORDER BY sort_order ASC')
+      .prepare('SELECT * FROM product_images ORDER BY is_primary DESC, sort_order ASC, created_at ASC')
       .all<ProductImageRow>();
     const imagesByProduct = new Map<string, string[]>();
 
@@ -130,7 +130,7 @@ export const productService = {
     if (!product) return null;
 
     const imagesRes = await db
-      .prepare('SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC')
+      .prepare('SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, sort_order ASC, created_at ASC')
       .bind(product.id)
       .all<ProductImageRow>();
 
@@ -188,7 +188,7 @@ export const productService = {
     const products = result.results || [];
 
     const imagesRes = await db
-      .prepare('SELECT * FROM product_images ORDER BY sort_order ASC')
+      .prepare('SELECT * FROM product_images ORDER BY is_primary DESC, sort_order ASC, created_at ASC')
       .all<ProductImageRow>();
     const imagesByProduct = new Map<string, string[]>();
 
@@ -235,7 +235,7 @@ export const productService = {
     if (!p) return null;
 
     const imagesRes = await db
-      .prepare('SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC')
+      .prepare('SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, sort_order ASC, created_at ASC')
       .bind(p.id)
       .all<ProductImageRow>();
 

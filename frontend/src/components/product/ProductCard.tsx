@@ -5,7 +5,12 @@ import { Product } from '../../types';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { useUI } from '../../context/UIContext';
-import { getOptimizedImageUrl, getResponsiveSrcSet, CARD_IMAGE_SIZES } from '../../services/imageService';
+import {
+  getOptimizedImageUrl,
+  getResponsiveSrcSet,
+  CARD_IMAGE_SIZES,
+  PLACEHOLDER_PRODUCT_IMAGE,
+} from '../../services/imageService';
 import { Heart, ArrowUpRight, Plus } from 'lucide-react';
 
 interface ProductCardProps {
@@ -33,7 +38,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // For cakes, if customization is preferred, trigger customize callback or add standard
     if (product.category === 'cakes' && onCustomizeClick) {
       onCustomizeClick(product);
     } else {
@@ -42,9 +46,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
     }
   };
 
-  const primaryImage = product.images[0] || '/images/cakes/chocolate-belgium.jpg';
+  const primaryImage = product.images?.[0] || PLACEHOLDER_PRODUCT_IMAGE;
   const optimizedSrc = getOptimizedImageUrl(primaryImage, { width: 500, crop: 'fill' });
   const responsiveSrcSet = getResponsiveSrcSet(primaryImage, [280, 420, 560, 750]);
+  const productUrl = `/${product.category}/${product.slug}`;
 
   return (
     <motion.div
@@ -52,11 +57,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="group relative bg-[#FFFDF9] rounded-luxury overflow-hidden border border-cream-200/80 hover:border-rose-200 hover:shadow-card transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-[#FFFDF9] rounded-luxury overflow-hidden border border-cream-200/90 hover:border-rose-200 hover:shadow-card transition-all duration-300 flex flex-col h-full shadow-sm"
     >
       {/* Image Container with Aspect Ratio Enforcement (Eliminates CLS) */}
       <Link
-        to={`/${product.category}/${product.slug}`}
+        to={productUrl}
+        state={{ product }}
         className="block relative aspect-square overflow-hidden bg-cream-100"
       >
         <img
@@ -99,10 +105,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
       </Link>
 
       {/* Content */}
-      <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
+      <div className="p-2 sm:p-3.5 flex-1 flex flex-col justify-between">
         <div>
-          <Link to={`/${product.category}/${product.slug}`} className="block">
-            <h3 className="font-serif text-sm sm:text-base lg:text-lg text-espresso-900 font-medium group-hover:text-rose-600 transition-colors leading-snug line-clamp-2">
+          <Link to={productUrl} state={{ product }} className="block">
+            <h3 className="font-serif text-[0.82rem] sm:text-base lg:text-lg text-espresso-900 font-medium group-hover:text-rose-600 transition-colors leading-snug line-clamp-1 sm:line-clamp-2">
               {product.name}
             </h3>
           </Link>
@@ -116,7 +122,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
         </div>
 
         {/* Pricing & CTA */}
-        <div className="pt-2 sm:pt-3 mt-2 sm:mt-3 border-t border-cream-200/60 flex items-center justify-between gap-1">
+        <div className="pt-1.5 sm:pt-3 mt-1.5 sm:mt-3 border-t border-cream-200/60 flex items-center justify-between gap-1">
           <div className="min-w-0 flex-1">
             <span className="font-serif text-sm sm:text-base lg:text-lg font-semibold text-espresso-900 truncate block">
               ₹{product.price}
@@ -138,15 +144,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
                       e.stopPropagation();
                       onCustomizeClick(product);
                     }}
-                    className="inline-flex items-center justify-center text-[0.68rem] sm:text-[0.72rem] font-medium text-white bg-rose-500 hover:bg-rose-600 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors shadow-soft"
+                    className="inline-flex items-center justify-center text-[0.65rem] sm:text-[0.72rem] font-medium text-white bg-rose-500 hover:bg-rose-600 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full transition-colors shadow-soft shrink-0"
                     aria-label={`Customize ${product.name}`}
                   >
                     <span>Customize</span>
                   </button>
                 )}
                 <Link
-                  to={`/cakes/${product.slug}`}
-                  className="p-1 sm:px-2 sm:py-1.5 rounded-full text-rose-600 hover:text-rose-700 bg-blush-50 hover:bg-blush-100 transition-colors border border-rose-200/60 flex items-center gap-1 text-[0.68rem] sm:text-[0.72rem]"
+                  to={productUrl}
+                  state={{ product }}
+                  className="p-1 sm:px-2 sm:py-1.5 rounded-full text-rose-600 hover:text-rose-700 bg-blush-50 hover:bg-blush-100 transition-colors border border-rose-200/60 flex items-center gap-1 text-[0.65rem] sm:text-[0.72rem] shrink-0"
                   aria-label={`View details for ${product.name}`}
                   title="View Details"
                 >
@@ -157,7 +164,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, priority = fa
             ) : (
               <button
                 onClick={handleQuickAdd}
-                className="inline-flex items-center justify-center gap-1 text-[0.7rem] sm:text-xs font-medium text-white bg-rose-500 hover:bg-rose-600 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors shadow-soft"
+                className="inline-flex items-center justify-center gap-1 text-[0.68rem] sm:text-xs font-medium text-white bg-rose-500 hover:bg-rose-600 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors shadow-soft shrink-0"
                 aria-label={`Add ${product.name} to basket`}
               >
                 <Plus className="w-3.5 h-3.5" />

@@ -64,6 +64,9 @@ export async function handleAdminUploadProductImage(
   } catch (err: any) {
     console.error('[handleAdminUploadProductImage] Error:', err?.message || err);
     const msg = err?.message || '';
+    if (err?.status === 409 || msg.includes('Maximum 5 images allowed')) {
+      return errorResponse('IMAGE_LIMIT_REACHED', msg, 409);
+    }
     if (msg.includes('not found')) {
       return errorResponse('PRODUCT_NOT_FOUND', 'Product not found.', 404);
     }

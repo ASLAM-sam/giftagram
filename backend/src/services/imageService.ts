@@ -74,22 +74,29 @@ export const imageService = {
       throw new Error(`Product with ID "${productId}" was not found.`);
     }
 
-    // 2. Validate file MIME type
+    // 2. Enforce hard server-side limit of 5 images per product
+    const existingImages = await this.getProductImages(db, productId);
+    if (existingImages.length >= 5) {
+      const error = new Error('Maximum 5 images allowed per product. Please delete or replace an existing image.');
+      (error as any).status = 409;
+      throw error;
+    }
+
+    // 3. Validate file MIME type
     if (!file || !file.type || !ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
       throw new Error('Unsupported file format. Please upload a valid JPG, PNG, WebP, or AVIF image.');
     }
 
-    // 3. Validate file size
+    // 4. Validate file size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       throw new Error('Image file is too large. Maximum allowed size is 10MB.');
     }
 
-    // 4. Upload to Cloudinary under strict giftagram/ namespace
+    // 5. Upload to Cloudinary under strict giftagram/ namespace
     const folder = `giftagram/products/${product.category || 'cakes'}`;
     const uploadResult = await cloudinaryService.uploadImage(file, folder, env);
 
-    // 5. Determine primary status & sort order in D1
-    const existingImages = await this.getProductImages(db, productId);
+    // 6. Determine primary status & sort order in D1
     const shouldBePrimary = isPrimary !== undefined ? Boolean(isPrimary) : existingImages.length === 0;
     const nextSortOrder = existingImages.length > 0 ? Math.max(...existingImages.map((i) => i.sortOrder)) + 1 : 0;
     const imageId = generateId('img');

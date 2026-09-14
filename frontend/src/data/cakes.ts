@@ -11,7 +11,7 @@ export const CAKE_PRODUCTS: Product[] = [
     shortDescription: "Rich Belgian chocolate ganache layered with tender chocolate sponge.",
     description: "Our signature Belgian chocolate cake crafted with 54% dark couverture chocolate, velvety ganache, and moist cocoa sponge. A classic choice for rich, sophisticated celebrations.",
     images: [
-      "/images/cakes/chocolate-belgium.jpg",
+      "https://res.cloudinary.com/ldgzbzjz/image/upload/v1789384521/giftagram/products/ktsrhpgvjpznj881yja3.jpg",
       "/images/cakes/chocolate-fudge.jpg",
       "/images/cakes/royal-chocolate.jpg",
     ],

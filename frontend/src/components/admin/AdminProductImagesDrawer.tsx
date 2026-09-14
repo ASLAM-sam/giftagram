@@ -270,12 +270,33 @@ export const AdminProductImagesDrawer: React.FC<AdminProductImagesDrawerProps> =
             {/* Upload Section */}
             <div className="bg-white p-5 rounded-2xl border border-cream-300 shadow-soft space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs uppercase tracking-wider font-semibold text-espresso-700 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-                  Upload New Atelier Asset
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs uppercase tracking-wider font-semibold text-espresso-700 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                    Upload New Atelier Asset
+                  </h3>
+                  <span className={`text-[0.68rem] px-2 py-0.5 rounded-full font-semibold border ${
+                    images.length >= 5
+                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                      : 'bg-cream-100 text-espresso-700 border-cream-200'
+                  }`}>
+                    Images: {images.length} / 5
+                  </span>
+                </div>
                 <span className="text-[0.68rem] font-mono text-espresso-400">JPG, PNG, WebP &bull; Max 10MB</span>
               </div>
+
+              {images.length >= 5 && (
+                <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div>
+                    <span className="font-medium block">Maximum 5 images reached.</span>
+                    <span className="text-amber-800/90 text-[0.72rem]">
+                      Upload is disabled. To add a new photo, please replace or delete an existing image below.
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <input
@@ -283,15 +304,17 @@ export const AdminProductImagesDrawer: React.FC<AdminProductImagesDrawerProps> =
                   placeholder="Alt text / description (optional)"
                   value={altTextInput}
                   onChange={(e) => setAltTextInput(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 bg-cream-50/60 border border-cream-200 rounded-xl text-espresso-900 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-300"
+                  disabled={images.length >= 5}
+                  className="w-full text-xs px-3.5 py-2.5 bg-cream-50/60 border border-cream-200 rounded-xl text-espresso-900 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-300 disabled:opacity-50"
                 />
 
                 <div className="flex items-center justify-between pt-1">
-                  <label className="inline-flex items-center gap-2 text-xs text-espresso-700 cursor-pointer">
+                  <label className={`inline-flex items-center gap-2 text-xs text-espresso-700 ${images.length >= 5 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <input
                       type="checkbox"
                       checked={makePrimaryInput}
                       onChange={(e) => setMakePrimaryInput(e.target.checked)}
+                      disabled={images.length >= 5}
                       className="w-3.5 h-3.5 rounded text-rose-600 focus:ring-rose-400 border-cream-300"
                     />
                     <span>Set as Primary cover photo</span>
@@ -302,7 +325,7 @@ export const AdminProductImagesDrawer: React.FC<AdminProductImagesDrawerProps> =
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     accept="image/jpeg,image/png,image/webp,image/avif"
-                    disabled={isUploading}
+                    disabled={isUploading || images.length >= 5}
                     className="hidden"
                     id="admin-image-upload-input"
                   />
@@ -310,14 +333,17 @@ export const AdminProductImagesDrawer: React.FC<AdminProductImagesDrawerProps> =
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-cream-50 text-xs font-medium shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    disabled={isUploading || images.length >= 5}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-cream-50 text-xs font-medium shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={images.length >= 5 ? 'Maximum 5 images per product reached' : undefined}
                   >
                     {isUploading ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-300" />
                         <span>Uploading...</span>
                       </>
+                    ) : images.length >= 5 ? (
+                      <span>Upload Disabled (5/5)</span>
                     ) : (
                       <>
                         <UploadCloud className="w-3.5 h-3.5 text-rose-300" />

@@ -21,7 +21,7 @@ import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
 
 type FilterStatus = 'all' | 'active' | 'inactive';
-type FilterCategory = 'all' | 'cakes' | 'bouquets';
+type FilterCategory = 'all' | 'cakes' | 'bouquets' | string;
 
 export const AdminProductsPage: React.FC = () => {
   const { logout } = useAdminAuth();
@@ -60,7 +60,8 @@ export const AdminProductsPage: React.FC = () => {
   // Form Field State
   const [formName, setFormName] = useState<string>('');
   const [formSlug, setFormSlug] = useState<string>('');
-  const [formCategory, setFormCategory] = useState<'cakes' | 'bouquets'>('cakes');
+  const [formCategory, setFormCategory] = useState<string>('cakes');
+  const [isCustomCategory, setIsCustomCategory] = useState<boolean>(false);
   const [formPrice, setFormPrice] = useState<string>('');
   const [formDescription, setFormDescription] = useState<string>('');
   const [formWeight, setFormWeight] = useState<string>('');
@@ -115,6 +116,15 @@ export const AdminProductsPage: React.FC = () => {
       isMounted = false;
     };
   }, [logout, navigate]);
+
+  // Dynamic available categories
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) set.add(p.category);
+    });
+    return Array.from(set);
+  }, [products]);
 
   // Clear success notification after 5s
   useEffect(() => {
@@ -171,7 +181,8 @@ export const AdminProductsPage: React.FC = () => {
     setEditingProduct(product);
     setFormName(product.name);
     setFormSlug(product.slug);
-    setFormCategory(product.category === 'bouquets' ? 'bouquets' : 'cakes');
+    setFormCategory(product.category);
+    setIsCustomCategory(!['cakes', 'bouquets'].includes(product.category));
     setFormPrice(String(product.price));
     setFormDescription(product.description || '');
     setFormWeight(product.weight || '');
@@ -408,6 +419,13 @@ export const AdminProductsPage: React.FC = () => {
               <option value="all">All Categories</option>
               <option value="cakes">Cakes Only</option>
               <option value="bouquets">Bouquets Only</option>
+              {availableCategories
+                .filter((c) => c !== 'cakes' && c !== 'bouquets')
+                .map((c) => (
+                  <option key={c} value={c}>
+                    {c.charAt(0).toUpperCase() + c.slice(1)} Only
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -780,14 +798,44 @@ export const AdminProductsPage: React.FC = () => {
                     <label className="block text-xs font-semibold text-espresso-800 uppercase tracking-wider mb-1.5">
                       Category <span className="text-rose-500">*</span>
                     </label>
-                    <select
-                      value={formCategory}
-                      onChange={(e) => setFormCategory(e.target.value as 'cakes' | 'bouquets')}
-                      className="w-full px-3.5 py-2.5 text-sm bg-cream-50/60 border border-cream-300 rounded-xl text-espresso-900 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-300 transition-all"
-                    >
-                      <option value="cakes">Cakes</option>
-                      <option value="bouquets">Bouquets</option>
-                    </select>
+                    <div className="space-y-2">
+                      <select
+                        value={isCustomCategory ? '__custom__' : formCategory}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '__custom__') {
+                            setIsCustomCategory(true);
+                            setFormCategory('');
+                          } else {
+                            setIsCustomCategory(false);
+                            setFormCategory(val);
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 text-sm bg-cream-50/60 border border-cream-300 rounded-xl text-espresso-900 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-300 transition-all"
+                      >
+                        <option value="cakes">Cakes</option>
+                        <option value="bouquets">Bouquets</option>
+                        {availableCategories
+                          .filter((c) => c !== 'cakes' && c !== 'bouquets')
+                          .map((c) => (
+                            <option key={c} value={c}>
+                              {c.charAt(0).toUpperCase() + c.slice(1)}
+                            </option>
+                          ))}
+                        <option value="__custom__">+ Create New Category...</option>
+                      </select>
+
+                      {isCustomCategory && (
+                        <input
+                          type="text"
+                          required
+                          value={formCategory}
+                          onChange={(e) => setFormCategory(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                          placeholder="e.g. gift-hampers"
+                          className="w-full px-3.5 py-2 text-xs bg-white border border-rose-300 rounded-xl text-espresso-900 focus:outline-none focus:ring-2 focus:ring-rose-400/30 transition-all font-mono"
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div>
